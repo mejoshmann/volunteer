@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MyCalendar from './components/calendar/MyCalendar';
 import './App.scss';
+import Navigation from './components/navigation/Navigation';
 
 const App = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [volunteers, setVolunteers] = useState({});
+
+  useEffect(() => {
+    const storedVolunteers = localStorage.getItem('volunteers');
+    if (storedVolunteers) {
+      setVolunteers(JSON.parse(storedVolunteers));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('volunteers', JSON.stringify(volunteers))
+  }, [volunteers]);
 
   const handleDayClick = (day) => {
     setSelectedDate(day);
@@ -47,6 +59,7 @@ const App = () => {
   return (
     <div className="app">
       <div className="calendar-section">
+        <Navigation/>
         <MyCalendar onDayClick={handleDayClick} />
       </div>
       <div className="task-section">
