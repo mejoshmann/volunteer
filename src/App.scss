@@ -1,0 +1,14 @@
+.app {
+  display: flex;
+  justify-content: space-between;
+}
+
+.calendar-section {
+  width: 70%;
+}
+
+.task-section {
+  width: 30%;
+  background-color: #f0f0f0;
+  padding: 20px;
+}
