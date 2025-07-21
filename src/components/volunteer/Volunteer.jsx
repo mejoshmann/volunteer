@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Login from "../../components/login/Login";
 import Registration from "../../components/registration/Registration";
+import logo from '../../assets/logo.png';
 import {
   Calendar,
   Plus,
@@ -600,15 +601,16 @@ const Volunteer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 ">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="h-16 bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Mountain className="h-8 w-8 text-blue-600" />
+                <img src={logo} alt="#" className="h-14 w-25 text blue-600" />
+              {/* <Mountain className="h-8 w-8 text-blue-600" /> */}
               <h1 className="text-xl font-bold text-gray-900">
-                Freestyle Vancouver
+                Freestyle Volunteer Portal
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -660,7 +662,7 @@ const Volunteer = () => {
         </div>
       </nav>
 
-      <div className="flex max-w-7xl mx-auto">
+      <div className="flex  max-w-7xl mx-auto">
         {/* Main Content */}
         <div className="flex-1 p-6">
           {/* Calendar Header */}

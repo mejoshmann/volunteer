@@ -1,8 +1,51 @@
 import { useState } from "react";
-import { Mountain } from "lucide-react";
+import logo from "../../assets/logo.png";
+import { supabase } from '../../lib/supabase';
 
-// Volunteer Registration Component
-const Registration = ({ onRegister, onShowLogin }) => {
+const Supabase = {
+  auth: {
+    signUp: async ({ email, password, options }) => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Simulate potential errors
+      if (email === 'test@error.com') {
+        throw new Error('Email already registered');
+      }
+      
+      return {
+        data: {
+          user: {
+            id: 'mock-user-id-' + Date.now(),
+            email: email,
+            ...options.data
+          }
+        },
+        error: null
+      };
+    }
+  },
+  from: (table) => ({
+    insert: (data) => ({
+      select: () => ({
+        single: async () => {
+          // Simulate API call
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          return {
+            data: {
+              id: 'mock-volunteer-id-' + Date.now(),
+              ...data[0]
+            },
+            error: null
+          };
+        }
+      })
+    })
+  })
+};
+
+const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -17,27 +60,93 @@ const Registration = ({ onRegister, onShowLogin }) => {
     preferredOpportunities: ''
   });
 
-  const handleSubmit = (e) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     
+    // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.mobile || 
         !formData.password || !formData.trainingMountain || !formData.skiingAbility || 
         !formData.preferredOpportunities) {
-      alert('Please fill in all required fields');
+      setError('Please fill in all required fields');
+      setLoading(false);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      setError('Passwords do not match');
+      setLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters');
+      setError('Password must be at least 6 characters');
+      setLoading(false);
       return;
     }
 
-    onRegister(formData);
+    try {
+      // 1. Create user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+          }
+        }
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      // 2. Insert volunteer profile data
+      const { data: volunteerData, error: volunteerError } = await supabase
+        .from('volunteers')
+        .insert([
+          {
+            user_id: authData.user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            mobile: formData.mobile,
+            children_names: formData.childrenNames || null,
+            training_mountain: formData.trainingMountain,
+            strengths: formData.strengths,
+            skiing_ability: formData.skiingAbility,
+            preferred_opportunities: formData.preferredOpportunities,
+            status: 'pending'
+          }
+        ])
+        .select()
+        .single();
+
+      if (volunteerError) {
+        throw volunteerError;
+      }
+
+      // Success! Call the parent callback
+      onRegister({
+        ...formData,
+        id: volunteerData.id,
+        status: 'pending'
+      });
+
+      // Show success message
+      alert('Registration successful! Please check your email to confirm your account.');
+
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStrengthChange = (strength) => {
@@ -49,16 +158,35 @@ const Registration = ({ onRegister, onShowLogin }) => {
     }));
   };
 
+  const strengthOptions = [
+    'Teaching',
+    'First Aid',
+    'Equipment Management',
+    'Event Organization',
+    'Photography',
+    'Communication',
+    'Leadership',
+    'Safety'
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
         <div className="text-center mb-8">
-          <Mountain className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <div className="h-15 w-28 mx-auto mb-4 flex items-center justify-center">
+            <img src={logo}/>
+          </div>
           <h2 className="text-3xl font-bold text-gray-900">Join Our Team</h2>
           <p className="text-gray-600 mt-2">Register to volunteer with Freestyle Vancouver</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">First Name *</label>
@@ -67,6 +195,7 @@ const Registration = ({ onRegister, onShowLogin }) => {
                 className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                disabled={loading}
               />
             </div>
             <div>
@@ -76,6 +205,7 @@ const Registration = ({ onRegister, onShowLogin }) => {
                 className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                disabled={loading}
               />
             </div>
           </div>
@@ -87,6 +217,7 @@ const Registration = ({ onRegister, onShowLogin }) => {
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
+              disabled={loading}
             />
           </div>
 
@@ -97,6 +228,7 @@ const Registration = ({ onRegister, onShowLogin }) => {
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.mobile}
               onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+              disabled={loading}
             />
           </div>
 
@@ -108,6 +240,7 @@ const Registration = ({ onRegister, onShowLogin }) => {
                 className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
+                disabled={loading}
               />
             </div>
             <div>
@@ -117,8 +250,21 @@ const Registration = ({ onRegister, onShowLogin }) => {
                 className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                disabled={loading}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Children's Names (optional)</label>
+            <input
+              type="text"
+              placeholder="Names of your children (if applicable)"
+              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={formData.childrenNames}
+              onChange={(e) => setFormData({...formData, childrenNames: e.target.value})}
+              disabled={loading}
+            />
           </div>
 
           <div>
@@ -127,6 +273,7 @@ const Registration = ({ onRegister, onShowLogin }) => {
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.trainingMountain}
               onChange={(e) => setFormData({...formData, trainingMountain: e.target.value})}
+              disabled={loading}
             >
               <option value="">Select mountain</option>
               <option value="Whistler">Whistler</option>
@@ -137,11 +284,30 @@ const Registration = ({ onRegister, onShowLogin }) => {
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-2">Strengths (select all that apply)</label>
+            <div className="grid grid-cols-2 gap-2">
+              {strengthOptions.map(strength => (
+                <label key={strength} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    checked={formData.strengths.includes(strength)}
+                    onChange={() => handleStrengthChange(strength)}
+                    disabled={loading}
+                  />
+                  <span className="text-sm">{strength}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-1">Skiing Ability *</label>
             <select
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.skiingAbility}
               onChange={(e) => setFormData({...formData, skiingAbility: e.target.value})}
+              disabled={loading}
             >
               <option value="">Select ability level</option>
               <option value="Beginner">Beginner</option>
@@ -157,6 +323,7 @@ const Registration = ({ onRegister, onShowLogin }) => {
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={formData.preferredOpportunities}
               onChange={(e) => setFormData({...formData, preferredOpportunities: e.target.value})}
+              disabled={loading}
             >
               <option value="">Select preference</option>
               <option value="On Snow">On Snow</option>
@@ -166,18 +333,25 @@ const Registration = ({ onRegister, onShowLogin }) => {
           </div>
 
           <button
-            type="submit"
-            className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 font-medium"
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className={`w-full p-3 rounded-md font-medium ${
+              loading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            } text-white`}
           >
-            Register as Volunteer
+            {loading ? 'Creating Account...' : 'Register as Volunteer'}
           </button>
-        </form>
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">Already registered?</p>
           <button
             onClick={onShowLogin}
             className="text-blue-600 hover:text-blue-800 font-medium"
+            disabled={loading}
           >
             Sign in here
           </button>
