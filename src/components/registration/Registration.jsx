@@ -1,49 +1,7 @@
 import { useState } from "react";
 import logo from "../../assets/logo.png";
-import { supabase } from '../../lib/supabase';
+import { supabase }  from '../../lib/supabase'; 
 
-const Supabase = {
-  auth: {
-    signUp: async ({ email, password, options }) => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate potential errors
-      if (email === 'test@error.com') {
-        throw new Error('Email already registered');
-      }
-      
-      return {
-        data: {
-          user: {
-            id: 'mock-user-id-' + Date.now(),
-            email: email,
-            ...options.data
-          }
-        },
-        error: null
-      };
-    }
-  },
-  from: (table) => ({
-    insert: (data) => ({
-      select: () => ({
-        single: async () => {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          return {
-            data: {
-              id: 'mock-volunteer-id-' + Date.now(),
-              ...data[0]
-            },
-            error: null
-          };
-        }
-      })
-    })
-  })
-};
 
 const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
   const [formData, setFormData] = useState({
@@ -64,90 +22,125 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  e.preventDefault();
+  setLoading(true);
+  setError('');
+  
+  // Validation - put this back!
+  if (!formData.firstName || !formData.lastName || !formData.email || !formData.mobile || 
+      !formData.password || !formData.trainingMountain || !formData.skiingAbility || 
+      !formData.preferredOpportunities) {
+    setError('Please fill in all required fields');
+    setLoading(false);
+    return;
+  }
+
+  if (formData.password !== formData.confirmPassword) {
+    setError('Passwords do not match');
+    setLoading(false);
+    return;
+  }
+
+  if (formData.password.length < 6) {
+    setError('Password must be at least 6 characters');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    console.log('Starting registration...');
     
-    // Validation
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.mobile || 
-        !formData.password || !formData.trainingMountain || !formData.skiingAbility || 
-        !formData.preferredOpportunities) {
-      setError('Please fill in all required fields');
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // 1. Create user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          }
+    // 1. Create user with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
         }
-      });
-
-      if (authError) {
-        throw authError;
       }
+    });
 
-      // 2. Insert volunteer profile data
-      const { data: volunteerData, error: volunteerError } = await supabase
-        .from('volunteers')
-        .insert([
-          {
-            user_id: authData.user.id,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email,
-            mobile: formData.mobile,
-            children_names: formData.childrenNames || null,
-            training_mountain: formData.trainingMountain,
-            strengths: formData.strengths,
-            skiing_ability: formData.skiingAbility,
-            preferred_opportunities: formData.preferredOpportunities,
-            status: 'pending'
-          }
-        ])
-        .select()
-        .single();
+    console.log('Auth response:', authData, authError);
 
-      if (volunteerError) {
-        throw volunteerError;
-      }
+    if (authError) throw authError;
 
-      // Success! Call the parent callback
-      onRegister({
-        ...formData,
-        id: volunteerData.id,
-        status: 'pending'
-      });
-
-      // Show success message
-      alert('Registration successful! Please check your email to confirm your account.');
-
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
+    if (!authData.user) {
+      throw new Error('No user data returned from authentication');
     }
-  };
+
+    // 2. Sign in the user immediately (this ensures they're authenticated for the insert)
+    console.log('Signing in user...');
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password
+    });
+
+    console.log('Sign in response:', signInData, signInError);
+
+    // If sign-in fails due to email confirmation, that's ok - we can still try the insert
+    if (signInError && !signInError.message.includes('Email not confirmed')) {
+      throw signInError;
+    }
+
+    // Use the original auth user ID (not the sign-in user ID in case sign-in failed)
+    const userId = authData.user.id;
+    console.log('Using user ID:', userId);
+
+    // 3. Insert volunteer profile data
+    const volunteerRecord = {
+      user_id: userId,
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      mobile: formData.mobile,
+      children_names: formData.childrenNames || null,
+      training_mountain: formData.trainingMountain,
+      strengths: formData.strengths,
+      skiing_ability: formData.skiingAbility,
+      preferred_opportunities: formData.preferredOpportunities,
+      status: 'pending',
+    };
+
+    console.log('About to insert:', volunteerRecord);
+
+    const { data: volunteerData, error: volunteerError } = await supabase
+      .from('volunteers')
+      .upsert(volunteerRecord, { 
+        onConflict: 'user_id',
+        ignoreDuplicates: false  // Allow updates if user already exists
+      })
+      .select()
+      .single();
+
+    console.log('Insert response:', volunteerData, volunteerError);
+
+    if (volunteerError) {
+      // If it's an RLS error, try a different approach
+      if (volunteerError.code === '42501') {
+        console.log('RLS error - trying with service role or different approach');
+        throw new Error('Registration failed due to database permissions. Please contact support.');
+      }
+      throw volunteerError;
+    }
+
+    // Success! Call the parent callback
+    onRegister({
+      ...formData,
+      id: volunteerData.id,
+      status: 'pending'
+    });
+
+    alert('Registration successful! Please check your email to confirm your account.');
+
+  } catch (err) {
+    console.error('Registration error:', err);
+    setError(err.message || 'Registration failed. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleStrengthChange = (strength) => {
     setFormData(prev => ({
@@ -276,10 +269,8 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
               disabled={loading}
             >
               <option value="">Select mountain</option>
-              <option value="Whistler">Whistler</option>
               <option value="Cypress">Cypress</option>
               <option value="Grouse">Grouse</option>
-              <option value="Seymour">Seymour</option>
             </select>
           </div>
 

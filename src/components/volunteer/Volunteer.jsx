@@ -308,10 +308,8 @@ const Volunteer = () => {
                 }
               >
                 <option value="">Select location</option>
-                <option value="Whistler">Whistler</option>
                 <option value="Cypress">Cypress</option>
                 <option value="Grouse">Grouse</option>
-                <option value="Seymour">Seymour</option>
               </select>
             </div>
 

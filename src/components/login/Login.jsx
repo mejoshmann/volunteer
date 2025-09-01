@@ -1,20 +1,42 @@
 import { useState } from 'react';
 import { Mountain } from 'lucide-react';
+import { supabase } from '../../lib/supabase'; // Add this import
 
-const Login = ({ onLogin, onShowRegister, registeredVolunteers }) => {
+
+const Login = ({ onLogin, onShowRegister }) => {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    
-    const volunteer = registeredVolunteers.find(v => 
-      v.email === loginData.email && v.password === loginData.password
-    );
-    
-    if (volunteer) {
-      onLogin(volunteer);
-    } else {
-      alert('Invalid email or password');
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error: supabaseError } = await supabase.auth.signInWithPassword({
+        email: loginData.email,
+        password: loginData.password
+      });
+
+      if (supabaseError) {
+        setError(supabaseError.message);
+      } else if (data.user) {
+        // Optional: fetch volunteer profile if needed
+        const { data: volunteerProfile, error: profileError } = await supabase
+          .from('volunteer')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (profileError) console.log(profileError);
+        onLogin({ user: data.user, volunteer: volunteerProfile });
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -27,6 +49,12 @@ const Login = ({ onLogin, onShowRegister, registeredVolunteers }) => {
           <p className="text-gray-600 mt-2">Sign in to access volunteer opportunities</p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Email</label>
@@ -35,6 +63,7 @@ const Login = ({ onLogin, onShowRegister, registeredVolunteers }) => {
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={loginData.email}
               onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+              disabled={loading}
               required
             />
           </div>
@@ -46,15 +75,21 @@ const Login = ({ onLogin, onShowRegister, registeredVolunteers }) => {
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={loginData.password}
               onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+              disabled={loading}
               required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 font-medium"
+            disabled={loading}
+            className={`w-full p-3 rounded-md font-medium ${
+              loading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            } text-white`}
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
 
@@ -63,6 +98,7 @@ const Login = ({ onLogin, onShowRegister, registeredVolunteers }) => {
           <button
             onClick={onShowRegister}
             className="text-blue-600 hover:text-blue-800 font-medium"
+            disabled={loading}
           >
             Register here
           </button>
@@ -71,7 +107,5 @@ const Login = ({ onLogin, onShowRegister, registeredVolunteers }) => {
     </div>
   );
 };
-
-
 
 export default Login;
