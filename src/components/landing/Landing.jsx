@@ -1,4 +1,5 @@
 import './Landing.scss';
+import Logo from "../../assets/logo.png";
 
 const Landing = ({ onShowLogin, onShowRegister }) => {
   return (
@@ -6,12 +7,12 @@ const Landing = ({ onShowLogin, onShowRegister }) => {
       <div className="container">
         <header className="header">
           <div className="logo">
-            <svg viewBox="0 0 100 100" className="logo-svg">
+            <img className="logo-img" src={Logo} alt="Freestyle Logo" />
+            {/* <svg viewBox="0 0 100 100" className="logo-svg">
               <path d="M50 10 L90 90 L10 90 Z" fill="#D32F2F"/>
               <text x="50" y="70" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold">FV</text>
-            </svg>
+            </svg> */}
           </div>
-          <h1 className="title">Freestyle Vancouver</h1>
           <p className="subtitle">Volunteer Portal</p>
         </header>
 
