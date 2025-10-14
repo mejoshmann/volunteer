@@ -30,7 +30,7 @@ const Landing = ({ onShowLogin, onShowRegister }) => {
           <div className="registration-notice">
             <h3>Important Notice</h3>
             <p>
-              All volunteers must be registered for the 2025-26 season before signing up for volunteer shifts.
+              All volunteers must be registered with SNOWREG for the 2025-26 season before signing up for volunteer opportunities.
             </p>
             <a 
               href="https://snowreg.com/#!/series/freestyle-vancouver-202526-1" 
