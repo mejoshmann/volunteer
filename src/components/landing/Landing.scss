@@ -1,0 +1,308 @@
+// Freestyle Vancouver Brand Colors
+$primary-red: #D32F2F;
+$dark-red: #B71C1C;
+$light-red: #EF5350;
+$white: #FFFFFF;
+$off-white: #F5F5F5;
+$text-dark: #212121;
+$text-gray: #757575;
+$border-gray: #E0E0E0;
+
+// Typography
+$font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+
+// Spacing
+$spacing-xs: 0.5rem;
+$spacing-sm: 1rem;
+$spacing-md: 1.5rem;
+$spacing-lg: 2rem;
+$spacing-xl: 3rem;
+
+// Breakpoints
+$mobile-max: 768px;
+
+.landing-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, $off-white 0%, $white 100%);
+  font-family: $font-family;
+  color: $text-dark;
+  padding: $spacing-md;
+
+  @media (max-width: $mobile-max) {
+    padding: $spacing-sm;
+  }
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: $spacing-lg $spacing-md;
+
+  @media (max-width: $mobile-max) {
+    padding: $spacing-md $spacing-sm;
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+
+  .logo {
+    margin: 0 auto $spacing-md;
+    width: 80px;
+    height: 80px;
+
+    @media (max-width: $mobile-max) {
+      width: 70px;
+      height: 70px;
+    }
+  }
+
+  .logo-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $primary-red;
+    margin: 0 0 $spacing-xs;
+    line-height: 1.2;
+
+    @media (max-width: $mobile-max) {
+      font-size: 1.75rem;
+    }
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    color: $text-gray;
+    margin: 0;
+    font-weight: 400;
+
+    @media (max-width: $mobile-max) {
+      font-size: 1rem;
+    }
+  }
+}
+
+.main-content {
+  .welcome-card {
+    background: $white;
+    border-radius: 12px;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-top: 4px solid $primary-red;
+
+    @media (max-width: $mobile-max) {
+      padding: $spacing-md;
+      margin-bottom: $spacing-md;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      color: $text-dark;
+      margin: 0 0 $spacing-md;
+      font-weight: 600;
+
+      @media (max-width: $mobile-max) {
+        font-size: 1.25rem;
+      }
+    }
+
+    .welcome-text {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: $text-gray;
+      margin-bottom: $spacing-md;
+
+      @media (max-width: $mobile-max) {
+        font-size: 0.9375rem;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .registration-notice {
+    background: #FFF3E0;
+    border-left: 4px solid #FF9800;
+    border-radius: 8px;
+    padding: $spacing-md;
+    margin-bottom: $spacing-lg;
+
+    @media (max-width: $mobile-max) {
+      padding: $spacing-sm;
+      margin-bottom: $spacing-md;
+    }
+
+    h3 {
+      font-size: 1.125rem;
+      color: $text-dark;
+      margin: 0 0 $spacing-sm;
+      font-weight: 600;
+
+      @media (max-width: $mobile-max) {
+        font-size: 1rem;
+      }
+    }
+
+    p {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      color: $text-dark;
+      margin: 0 0 $spacing-sm;
+
+      @media (max-width: $mobile-max) {
+        font-size: 0.875rem;
+      }
+    }
+
+    .register-link {
+      display: inline-block;
+      color: #E65100;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.9375rem;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #BF360C;
+        text-decoration: underline;
+      }
+
+      @media (max-width: $mobile-max) {
+        font-size: 0.875rem;
+      }
+    }
+  }
+
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+
+    @media (max-width: $mobile-max) {
+      gap: $spacing-sm;
+      margin-bottom: $spacing-md;
+    }
+  }
+
+  .btn {
+    width: 100%;
+    padding: $spacing-md;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: $font-family;
+    text-align: center;
+
+    @media (max-width: $mobile-max) {
+      padding: $spacing-sm $spacing-md;
+      font-size: 1rem;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+
+    &:focus {
+      outline: 3px solid rgba($primary-red, 0.3);
+      outline-offset: 2px;
+    }
+  }
+
+  .btn-primary {
+    background: $primary-red;
+    color: $white;
+    box-shadow: 0 4px 12px rgba($primary-red, 0.3);
+
+    &:hover {
+      background: $dark-red;
+      box-shadow: 0 6px 16px rgba($primary-red, 0.4);
+    }
+
+    &:active {
+      box-shadow: 0 2px 8px rgba($primary-red, 0.3);
+    }
+  }
+
+  .btn-secondary {
+    background: $white;
+    color: $primary-red;
+    border: 2px solid $primary-red;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    &:hover {
+      background: rgba($primary-red, 0.05);
+      border-color: $dark-red;
+      color: $dark-red;
+    }
+
+    &:active {
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .info-text {
+    text-align: center;
+    
+    p {
+      font-size: 0.875rem;
+      color: $text-gray;
+      margin: $spacing-xs 0;
+      line-height: 1.5;
+
+      @media (max-width: $mobile-max) {
+        font-size: 0.8125rem;
+      }
+    }
+  }
+}
+
+.footer {
+  text-align: center;
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $border-gray;
+
+  p {
+    font-size: 0.875rem;
+    color: $text-gray;
+    margin: 0;
+
+    @media (max-width: $mobile-max) {
+      font-size: 0.8125rem;
+    }
+  }
+
+  a {
+    color: $primary-red;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+
+    &:hover {
+      color: $dark-red;
+      text-decoration: underline;
+    }
+  }
+}
+
+// Accessibility improvements
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

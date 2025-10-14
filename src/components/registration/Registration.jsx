@@ -58,7 +58,8 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
         data: {
           first_name: formData.firstName,
           last_name: formData.lastName,
-        }
+        },
+        emailRedirectTo: window.location.origin // Redirect back to app after email confirmation
       }
     });
 
@@ -70,25 +71,24 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
       throw new Error('No user data returned from authentication');
     }
 
-    // 2. Sign in the user immediately (this ensures they're authenticated for the insert)
-    console.log('Signing in user...');
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password
-    });
-
-    console.log('Sign in response:', signInData, signInError);
-
-    // If sign-in fails due to email confirmation, that's ok - we can still try the insert
-    if (signInError && !signInError.message.includes('Email not confirmed')) {
-      throw signInError;
+    // Check if email confirmation is required
+    if (authData.user.identities && authData.user.identities.length === 0) {
+      // Email confirmation is required - don't try to insert volunteer data yet
+      alert('Registration successful! Please check your email to confirm your account, then you can log in.');
+      onRegister(); // Call onRegister without data since we can't insert yet
+      setLoading(false);
+      return;
     }
 
-    // Use the original auth user ID (not the sign-in user ID in case sign-in failed)
+    // If we get here, the user is confirmed and authenticated
+    // Use the user ID from signup
     const userId = authData.user.id;
-    console.log('Using user ID:', userId);
+    console.log('User ID:', userId);
 
-    // 3. Insert volunteer profile data
+    // Small delay to ensure auth state is properly set
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 2. Insert volunteer profile data
     const volunteerRecord = {
       user_id: userId,
       first_name: formData.firstName,
@@ -107,32 +107,46 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
 
     const { data: volunteerData, error: volunteerError } = await supabase
       .from('volunteers')
-      .upsert(volunteerRecord, { 
-        onConflict: 'user_id',
-        ignoreDuplicates: false  // Allow updates if user already exists
-      })
+      .insert(volunteerRecord)
       .select()
       .single();
 
     console.log('Insert response:', volunteerData, volunteerError);
 
     if (volunteerError) {
-      // If it's an RLS error, try a different approach
+      // If it's an RLS error, provide helpful message
       if (volunteerError.code === '42501') {
-        console.log('RLS error - trying with service role or different approach');
-        throw new Error('Registration failed due to database permissions. Please contact support.');
+        console.log('RLS error - database permissions issue');
+        // Try one more time with a delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data: retryData, error: retryError } = await supabase
+          .from('volunteers')
+          .insert(volunteerRecord)
+          .select()
+          .single();
+          
+        if (retryError) {
+          throw new Error('Registration failed due to database permissions. Please contact support.');
+        }
+        // Success on retry
+        onRegister({
+          ...formData,
+          id: retryData.id,
+          status: 'pending'
+        });
+        alert('Registration successful! You can now log in.');
+      } else {
+        throw volunteerError;
       }
-      throw volunteerError;
+    } else {
+      // Success! Call the parent callback
+      onRegister({
+        ...formData,
+        id: volunteerData.id,
+        status: 'pending'
+      });
+      alert('Registration successful! You can now log in.');
     }
-
-    // Success! Call the parent callback
-    onRegister({
-      ...formData,
-      id: volunteerData.id,
-      status: 'pending'
-    });
-
-    alert('Registration successful! Please check your email to confirm your account.');
 
   } catch (err) {
     console.error('Registration error:', err);

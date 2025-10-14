@@ -20,11 +20,18 @@ const Login = ({ onLogin, onShowRegister }) => {
       });
 
       if (supabaseError) {
-        setError(supabaseError.message);
+        // Better error messages
+        if (supabaseError.message.includes('Email not confirmed')) {
+          setError('Please check your email and click the confirmation link before signing in. If you can\'t find it, check your spam folder.');
+        } else if (supabaseError.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please try again.');
+        } else {
+          setError(supabaseError.message);
+        }
       } else if (data.user) {
         // Optional: fetch volunteer profile if needed
         const { data: volunteerProfile, error: profileError } = await supabase
-          .from('volunteer')
+          .from('volunteers')
           .select('*')
           .eq('user_id', data.user.id)
           .single();
