@@ -166,14 +166,12 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
   };
 
   const strengthOptions = [
-    'Teaching',
     'First Aid',
     'Equipment Management',
     'Event Organization',
-    'Photography',
-    'Communication',
-    'Leadership',
-    'Safety'
+    'Snow Shovelling',
+    'Lunch Detail',
+    'Coordinator'
   ];
 
   return (
