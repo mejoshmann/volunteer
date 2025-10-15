@@ -19,6 +19,10 @@ import {
   CalendarPlus,
   Download,
   ChevronDown,
+  Menu,
+  X as CloseIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -91,6 +95,19 @@ const Volunteer = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [openCalendarDropdown, setOpenCalendarDropdown] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day'
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Check for mobile on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Load data on mount
   useEffect(() => {
@@ -329,6 +346,227 @@ Freestyle Vancouver Volunteer Opportunity\r
     }
 
     return days;
+  };
+
+  // Mobile Day View Component
+  const MobileDayView = ({ day }) => {
+    const isToday = day.date.toDateString() === new Date().toDateString();
+    const dayOpportunities = getOpportunitiesForDate(day.date);
+    
+    return (
+      <div className={`bg-white p-4 border-b ${isToday ? "border-blue-500 border-l-4" : "border-gray-200"}`}>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className={`font-bold ${isToday ? "text-blue-600" : "text-gray-900"}`}>
+            {day.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </h3>
+          {isToday && (
+            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Today</span>
+          )}
+        </div>
+        
+        {dayOpportunities.length > 0 ? (
+          <div className="space-y-3">
+            {dayOpportunities.map((opportunity) => {
+              const signedUpCount = opportunity.signups ? opportunity.signups.length : 0;
+              const userIsSignedUp = isSignedUp(opportunity);
+              const isFull = signedUpCount >= opportunity.max_volunteers;
+              const calLinks = generateCalendarLinks(opportunity);
+              
+              return (
+                <div 
+                  key={opportunity.id} 
+                  className={`p-3 rounded-lg border ${
+                    opportunity.type === "on-snow"
+                      ? "bg-blue-50 border-blue-200"
+                      : "bg-green-50 border-green-200"
+                  } ${userIsSignedUp ? "ring-2 ring-green-500" : ""}`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-bold text-gray-900">{opportunity.title}</h4>
+                      <div className="flex items-center text-sm text-gray-600 mt-1">
+                        <Calendar size={14} className="mr-1" />
+                        <span>{opportunity.time}</span>
+                        <span className="mx-2">•</span>
+                        <Mountain size={14} className="mr-1" />
+                        <span>{opportunity.location}</span>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full font-medium ${
+                        opportunity.type === "on-snow"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {opportunity.type === "on-snow" ? "On Snow" : "Off Snow"}
+                    </span>
+                  </div>
+                  
+                  <div className="text-sm text-gray-600 mb-3">
+                    <p>{opportunity.description}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="text-sm">
+                      <span className="font-medium">
+                        {signedUpCount}/{opportunity.max_volunteers} spots filled
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {currentView === "volunteer" && (
+                    <div className="space-y-2">
+                      {userIsSignedUp ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => removeSignup(opportunity.id)}
+                            className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 font-medium flex items-center justify-center"
+                          >
+                            <X size={16} className="mr-1" />
+                            Remove Signup
+                          </button>
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenCalendarDropdown(
+                                openCalendarDropdown === `mobile-${opportunity.id}` ? null : `mobile-${opportunity.id}`
+                              )}
+                              className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-medium flex items-center"
+                            >
+                              <CalendarPlus size={16} className="mr-1" />
+                              Add to Calendar
+                            </button>
+                            {openCalendarDropdown === `mobile-${opportunity.id}` && (
+                              <div className="absolute bottom-full right-0 mb-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                <a
+                                  href={calLinks.google}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block px-4 py-2 text-sm hover:bg-gray-50 border-b border-gray-100"
+                                  onClick={() => setOpenCalendarDropdown(null)}
+                                >
+                                  📅 Google Calendar
+                                </a>
+                                <a
+                                  href={calLinks.apple}
+                                  download={`${opportunity.title}.ics`}
+                                  className="block px-4 py-2 text-sm hover:bg-gray-50 border-b border-gray-100"
+                                  onClick={() => setOpenCalendarDropdown(null)}
+                                >
+                                  🍎 Apple Calendar
+                                </a>
+                                <a
+                                  href={calLinks.outlook}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block px-4 py-2 text-sm hover:bg-gray-50 rounded-b-lg"
+                                  onClick={() => setOpenCalendarDropdown(null)}
+                                >
+                                  📧 Outlook Calendar
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : isFull ? (
+                        <div className="px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg text-center font-medium">
+                          Opportunity Full
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => quickSignUp(opportunity.id)}
+                          className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-medium"
+                        >
+                          Sign Up for This Shift
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
+                  {currentView === "admin" && (
+                    <div className="flex space-x-2 mt-2">
+                      <button
+                        onClick={() => setEditingOpportunity(opportunity)}
+                        className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center"
+                      >
+                        <Edit size={16} className="mr-1" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteOpportunity(opportunity.id)}
+                        className="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 font-medium flex items-center justify-center"
+                      >
+                        <Trash2 size={16} className="mr-1" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Calendar size={48} className="mx-auto mb-3 text-gray-300" />
+            <p>No volunteer opportunities scheduled for this day</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Mobile Calendar View Component
+  const MobileCalendarView = () => {
+    const today = new Date();
+    const days = [];
+    
+    // Generate next 14 days
+    for (let i = 0; i < 14; i++) {
+      const date = new Date();
+      date.setDate(today.getDate() + i);
+      days.push({
+        date: date,
+        opportunities: getOpportunitiesForDate(date)
+      });
+    }
+    
+    return (
+      <div className="space-y-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Upcoming Opportunities</h2>
+          <div className="space-y-3">
+            {days.map((day, index) => (
+              <div 
+                key={index} 
+                className="p-3 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => {
+                  setSelectedDate(day.date);
+                  setMobileView("day");
+                }}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold">
+                      {day.date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </h3>
+                    {day.date.toDateString() === today.toDateString() && (
+                      <span className="text-xs text-blue-600 font-medium">Today</span>
+                    )}
+                  </div>
+                  <div className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
+                    {day.opportunities.length} {day.opportunities.length === 1 ? 'opportunity' : 'opportunities'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Opportunity Form Component
@@ -931,6 +1169,316 @@ Freestyle Vancouver Volunteer Opportunity\r
     );
   }
 
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Mobile Header */}
+        <nav className="h-16 bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+          <div className="px-4 h-full flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <img src={logo} alt="Freestyle Vancouver" className="h-8" />
+              <h1 className="text-lg font-bold text-gray-900 hidden sm:block">
+                Volunteer Portal
+              </h1>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {currentView === "volunteer" ? (
+                <>
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                  >
+                    <Menu size={20} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentView("admin")}
+                    className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                  >
+                    <Settings size={20} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowOpportunityForm(true)}
+                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Plus size={20} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentView("volunteer")}
+                    className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                  >
+                    <Users size={20} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAdminLoggedIn(false);
+                      setCurrentView("volunteer");
+                    }}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <LogOut size={20} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        {/* Mobile Navigation Tabs */}
+        {currentView === "volunteer" && (
+          <div className="bg-white border-b border-gray-200">
+            <div className="flex">
+              <button
+                onClick={() => setMobileView("calendar")}
+                className={`flex-1 py-3 text-center font-medium text-sm ${
+                  mobileView === "calendar"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500"
+                }`}
+              >
+                Calendar
+              </button>
+              <button
+                onClick={() => setMobileView("day")}
+                className={`flex-1 py-3 text-center font-medium text-sm ${
+                  mobileView === "day"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500"
+                }`}
+              >
+                My Day
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Content */}
+        <div className="pb-16">
+          {currentView === "volunteer" ? (
+            mobileView === "calendar" ? (
+              <MobileCalendarView />
+            ) : (
+              <div>
+                <div className="p-4 bg-white border-b border-gray-200">
+                  <div className="flex justify-between items-center mb-3">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      {selectedDate.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </h2>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          const newDate = new Date(selectedDate);
+                          newDate.setDate(newDate.getDate() - 1);
+                          setSelectedDate(newDate);
+                        }}
+                        className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                        aria-label="Previous day"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button
+                        onClick={() => setSelectedDate(new Date())}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm"
+                      >
+                        Today
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newDate = new Date(selectedDate);
+                          newDate.setDate(newDate.getDate() + 1);
+                          setSelectedDate(newDate);
+                        }}
+                        className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                        aria-label="Next day"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <MobileDayView day={{ date: selectedDate, opportunities: getOpportunitiesForDate(selectedDate) }} />
+              </div>
+            )
+          ) : (
+            <div className="p-4">
+              <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 text-center">
+                  {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+                </h2>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(selectedDate);
+                      newDate.setMonth(newDate.getMonth() - 1);
+                      setSelectedDate(newDate);
+                    }}
+                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium flex items-center"
+                    aria-label="Previous month"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => setSelectedDate(new Date())}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(selectedDate);
+                      newDate.setMonth(newDate.getMonth() + 1);
+                      setSelectedDate(newDate);
+                    }}
+                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium flex items-center"
+                    aria-label="Next month"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+                <div className="grid grid-cols-7 gap-px bg-gray-200">
+                  {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
+                    <div
+                      key={day}
+                      className="bg-gray-50 p-2 text-center font-semibold text-gray-700 text-xs"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                  {calendarDays.map((day, index) => {
+                    const isToday = day.date.toDateString() === new Date().toDateString();
+                    return (
+                      <div
+                        key={index}
+                        className={`bg-white p-1 min-h-[80px] ${
+                          !day.isCurrentMonth ? "bg-gray-50" : ""
+                        } ${isToday ? "ring-2 ring-blue-500 ring-inset" : ""}`}
+                      >
+                        <div className={`text-xs font-semibold mb-1 ${
+                          !day.isCurrentMonth ? "text-gray-400" : isToday ? "text-blue-600" : "text-gray-900"
+                        }`}>
+                          {day.date.getDate()}
+                        </div>
+                        <div className="space-y-0.5">
+                          {day.opportunities.slice(0, 3).map((opportunity) => (
+                            <div
+                              key={opportunity.id}
+                              className={`text-xs p-1 rounded truncate ${
+                                opportunity.type === "on-snow"
+                                  ? "bg-blue-100 text-blue-900"
+                                  : "bg-green-100 text-green-900"
+                              }`}
+                            >
+                              {opportunity.time}
+                            </div>
+                          ))}
+                          {day.opportunities.length > 3 && (
+                            <div className="text-xs text-gray-500 text-center">
+                              +{day.opportunities.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-50">
+            <div 
+              className="absolute inset-0 bg-black bg-opacity-50"
+              onClick={() => setSidebarOpen(false)}
+            ></div>
+            <div className="absolute right-0 top-0 h-full w-4/5 max-w-sm bg-white shadow-xl">
+              <div className="h-full flex flex-col">
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                  <h2 className="text-lg font-bold">Menu</h2>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="p-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <CloseIcon size={24} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <Sidebar />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Navigation Bar */}
+        {currentView === "volunteer" && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2">
+            <div className="flex justify-around">
+              <button
+                onClick={() => setMobileView("calendar")}
+                className={`flex flex-col items-center p-2 ${
+                  mobileView === "calendar" ? "text-blue-600" : "text-gray-500"
+                }`}
+              >
+                <Calendar size={20} />
+                <span className="text-xs mt-1">Calendar</span>
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedDate(new Date());
+                  setMobileView("day");
+                }}
+                className={`flex flex-col items-center p-2 ${
+                  mobileView === "day" ? "text-blue-600" : "text-gray-500"
+                }`}
+              >
+                <User size={20} />
+                <span className="text-xs mt-1">My Day</span>
+              </button>
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="flex flex-col items-center p-2 text-gray-500"
+              >
+                <Menu size={20} />
+                <span className="text-xs mt-1">Menu</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modals */}
+        {showOpportunityForm && (
+          <OpportunityForm
+            onClose={() => setShowOpportunityForm(false)}
+            onSubmit={addOpportunity}
+          />
+        )}
+
+        {editingOpportunity && (
+          <OpportunityForm
+            opportunity={editingOpportunity}
+            onClose={() => setEditingOpportunity(null)}
+            onSubmit={updateOpportunity}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Desktop layout
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Navigation */}
