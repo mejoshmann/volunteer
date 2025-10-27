@@ -23,38 +23,45 @@ $mobile-max: 768px;
 
 .landing-page {
   min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(135deg, $off-white 0%, $white 100%);
   font-family: $font-family;
   color: $text-dark;
+  padding: 0;
+  overflow-y: auto;
+
+  @media (max-width: $mobile-max) {
+    padding: 0;
+  }
+}
+
+.container {
+  max-width: 600px;
+  min-height: 100vh;
+  margin: 0 auto;
   padding: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 
   @media (max-width: $mobile-max) {
     padding: $spacing-sm;
   }
 }
 
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: $spacing-lg $spacing-md;
-
-  @media (max-width: $mobile-max) {
-    padding: $spacing-md $spacing-sm;
-  }
-}
-
 .header {
   text-align: center;
-  margin-bottom: $spacing-xl;
+  margin-bottom: $spacing-md;
+  flex-shrink: 0;
 
   .logo {
-    margin: 0 auto $spacing-md;
-    width: 200px;
-    height: 110px;
+    margin: 0 auto $spacing-sm;
+    width: 160px;
+    height: 88px;
 
     @media (max-width: $mobile-max) {
-      width: 70px;
-      height: 70px;
+      width: 120px;
+      height: 66px;
     }
   }
 
@@ -65,50 +72,57 @@ $mobile-max: 768px;
   }
 
   .subtitle {
-    font-size: 2rem;
+    font-size: 1.5rem;
     color: $text-gray;
     margin: 0;
     font-weight: 400;
 
     @media (max-width: $mobile-max) {
-      font-size: 1rem;
+      font-size: 1.125rem;
     }
   }
 }
 
 .main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+
   .welcome-card {
     background: $white;
     border-radius: 12px;
-    padding: $spacing-lg;
-    margin-bottom: $spacing-lg;
+    padding: $spacing-md;
+    margin-bottom: $spacing-md;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border-top: 4px solid $primary-red;
 
     @media (max-width: $mobile-max) {
-      padding: $spacing-md;
-      margin-bottom: $spacing-md;
+      padding: $spacing-sm;
+      margin-bottom: $spacing-sm;
     }
 
     h2 {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       color: $text-dark;
-      margin: 0 0 $spacing-md;
+      margin: 0 0 $spacing-sm;
       font-weight: 600;
 
       @media (max-width: $mobile-max) {
-        font-size: 1.25rem;
+        font-size: 1.125rem;
       }
     }
 
     .welcome-text {
-      font-size: 1rem;
-      line-height: 1.6;
+      font-size: 0.9375rem;
+      line-height: 1.5;
       color: $text-gray;
-      margin-bottom: $spacing-md;
+      margin-bottom: $spacing-sm;
 
       @media (max-width: $mobile-max) {
-        font-size: 0.9375rem;
+        font-size: 0.875rem;
+        line-height: 1.4;
       }
 
       &:last-child {
@@ -121,33 +135,33 @@ $mobile-max: 768px;
     background: #FFF3E0;
     border-left: 4px solid #FF9800;
     border-radius: 8px;
-    padding: $spacing-md;
-    margin-bottom: $spacing-lg;
+    padding: $spacing-sm;
+    margin-bottom: $spacing-md;
 
     @media (max-width: $mobile-max) {
       padding: $spacing-sm;
-      margin-bottom: $spacing-md;
+      margin-bottom: $spacing-sm;
     }
 
     h3 {
-      font-size: 1.125rem;
+      font-size: 1rem;
       color: $text-dark;
-      margin: 0 0 $spacing-sm;
+      margin: 0 0 $spacing-xs;
       font-weight: 600;
 
       @media (max-width: $mobile-max) {
-        font-size: 1rem;
+        font-size: 0.9375rem;
       }
     }
 
     p {
-      font-size: 0.9375rem;
-      line-height: 1.5;
+      font-size: 0.875rem;
+      line-height: 1.4;
       color: $text-dark;
-      margin: 0 0 $spacing-sm;
+      margin: 0 0 $spacing-xs;
 
       @media (max-width: $mobile-max) {
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
       }
     }
 
@@ -156,7 +170,7 @@ $mobile-max: 768px;
       color: #E65100;
       font-weight: 600;
       text-decoration: none;
-      font-size: 0.9375rem;
+      font-size: 0.875rem;
       transition: color 0.2s;
 
       &:hover {
@@ -165,7 +179,7 @@ $mobile-max: 768px;
       }
 
       @media (max-width: $mobile-max) {
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
       }
     }
   }
@@ -173,19 +187,19 @@ $mobile-max: 768px;
   .action-buttons {
     display: flex;
     flex-direction: column;
-    gap: $spacing-md;
-    margin-bottom: $spacing-lg;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-sm;
 
     @media (max-width: $mobile-max) {
       gap: $spacing-sm;
-      margin-bottom: $spacing-md;
+      margin-bottom: $spacing-sm;
     }
   }
 
   .btn {
     width: 100%;
-    padding: $spacing-md;
-    font-size: 1.125rem;
+    padding: $spacing-sm $spacing-md;
+    font-size: 1rem;
     font-weight: 600;
     border: none;
     border-radius: 8px;
@@ -195,8 +209,8 @@ $mobile-max: 768px;
     text-align: center;
 
     @media (max-width: $mobile-max) {
-      padding: $spacing-sm $spacing-md;
-      font-size: 1rem;
+      padding: 0.75rem $spacing-md;
+      font-size: 0.9375rem;
     }
 
     &:active {
@@ -245,13 +259,13 @@ $mobile-max: 768px;
     text-align: center;
     
     p {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       color: $text-gray;
-      margin: $spacing-xs 0;
-      line-height: 1.5;
+      margin: 0.25rem 0;
+      line-height: 1.4;
 
       @media (max-width: $mobile-max) {
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
       }
     }
   }
@@ -259,17 +273,18 @@ $mobile-max: 768px;
 
 .footer {
   text-align: center;
-  margin-top: $spacing-xl;
-  padding-top: $spacing-lg;
+  margin-top: $spacing-md;
+  padding: $spacing-sm 0;
   border-top: 1px solid $border-gray;
+  flex-shrink: 0;
 
   p {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: $text-gray;
     margin: 0;
 
     @media (max-width: $mobile-max) {
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
     }
   }
 

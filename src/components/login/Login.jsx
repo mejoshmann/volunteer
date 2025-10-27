@@ -3,7 +3,7 @@ import { Mountain } from 'lucide-react';
 import { supabase } from '../../lib/supabase'; // Add this import
 
 
-const Login = ({ onLogin, onShowRegister }) => {
+const Login = ({ onLogin, onShowRegister, onShowForgotPassword }) => {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -76,7 +76,17 @@ const Login = ({ onLogin, onShowRegister }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium">Password</label>
+              <button
+                type="button"
+                onClick={onShowForgotPassword}
+                className="text-sm text-blue-600 hover:text-blue-800"
+                disabled={loading}
+              >
+                Forgot password?
+              </button>
+            </div>
             <input
               type="password"
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

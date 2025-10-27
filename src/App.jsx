@@ -3,16 +3,30 @@ import Volunteer from './components/volunteer/Volunteer';
 import Landing from './components/landing/Landing';
 import Login from './components/login/Login';
 import Registration from './components/registration/Registration';
+import ForgotPassword from './components/login/ForgotPassword';
+import ResetPassword from './components/login/ResetPassword';
 import { supabase } from './lib/supabase';
 import './App.css'
 
 function App() {
-  const [currentView, setCurrentView] = useState('landing'); // 'landing', 'login', 'register', 'volunteer'
+  const [currentView, setCurrentView] = useState('landing'); // 'landing', 'login', 'register', 'volunteer', 'forgot-password', 'reset-password'
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Check for existing session on mount
   useEffect(() => {
+    // Check if this is a password recovery link
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery' && accessToken) {
+      // User clicked password reset link
+      setCurrentView('reset-password');
+      setLoading(false);
+      return;
+    }
+    
     checkUser();
 
     // Listen for auth changes (including email confirmation)
@@ -113,6 +127,17 @@ function App() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    // After password reset, check user and redirect to volunteer view
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUser(user);
+      setCurrentView('volunteer');
+    } else {
+      setCurrentView('login');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -136,6 +161,17 @@ function App() {
         <Login 
           onLogin={handleLogin}
           onShowRegister={() => setCurrentView('register')}
+          onShowForgotPassword={() => setCurrentView('forgot-password')}
+        />
+      )}
+      {currentView === 'forgot-password' && (
+        <ForgotPassword 
+          onBack={() => setCurrentView('login')}
+        />
+      )}
+      {currentView === 'reset-password' && (
+        <ResetPassword 
+          onPasswordReset={handlePasswordReset}
         />
       )}
       {currentView === 'register' && (

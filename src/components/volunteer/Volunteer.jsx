@@ -1399,12 +1399,14 @@ Freestyle Vancouver Volunteer Opportunity\r
 
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
-          <div className="fixed inset-0 z-50">
+          <>
+            {/* Backdrop */}
             <div 
-              className="absolute inset-0 bg-black bg-opacity-50"
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
               onClick={() => setSidebarOpen(false)}
             ></div>
-            <div className="absolute right-0 top-0 h-full w-4/5 max-w-sm bg-white shadow-xl">
+            {/* Sidebar */}
+            <div className="fixed right-0 top-0 bottom-0 w-4/5 max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300">
               <div className="h-full flex flex-col">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                   <h2 className="text-lg font-bold">Menu</h2>
@@ -1420,7 +1422,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Mobile Navigation Bar */}
