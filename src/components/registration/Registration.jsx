@@ -74,7 +74,16 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
     // Check if email confirmation is required
     if (authData.user.identities && authData.user.identities.length === 0) {
       // Email confirmation is required - don't try to insert volunteer data yet
-      alert('Registration successful! Please check your email to confirm your account, then you can log in.');
+      alert(`Registration initiated for ${formData.email}!
+
+IMPORTANT: Email confirmation is enabled.
+
+What to do next:
+1. Check your email inbox (and spam folder)
+2. Click the confirmation link in the email
+3. After confirming, come back and log in
+
+Note: If you don't receive an email within 5 minutes, please contact support or ask the administrator to disable email confirmation.`);
       onRegister(); // Call onRegister without data since we can't insert yet
       setLoading(false);
       return;
@@ -85,68 +94,95 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
     const userId = authData.user.id;
     console.log('User ID:', userId);
 
-    // Small delay to ensure auth state is properly set
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 2. Create volunteer profile
+    // Add delay to ensure auth session is fully established
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    // 2. Insert volunteer profile data
-    const volunteerRecord = {
-      user_id: userId,
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      email: formData.email,
-      mobile: formData.mobile,
-      children_names: formData.childrenNames || null,
-      training_mountain: formData.trainingMountain,
-      strengths: formData.strengths,
-      skiing_ability: formData.skiingAbility,
-      preferred_opportunities: formData.preferredOpportunities,
-      status: 'pending',
-    };
+    // Try to insert volunteer profile with retry logic
+    let volunteerData = null;
+    let insertError = null;
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const volunteerRecord = {
+        user_id: userId,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        mobile: formData.mobile,
+        children_names: formData.childrenNames || null,
+        training_mountain: formData.trainingMountain,
+        strengths: formData.strengths,
+        skiing_ability: formData.skiingAbility,
+        preferred_opportunities: formData.preferredOpportunities,
+        status: 'pending',
+      };
 
-    console.log('About to insert:', volunteerRecord);
+      console.log(`Insert attempt ${attempt + 1}:`, volunteerRecord);
 
-    const { data: volunteerData, error: volunteerError } = await supabase
-      .from('volunteers')
-      .insert(volunteerRecord)
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('volunteers')
+        .insert(volunteerRecord)
+        .select()
+        .single();
 
-    console.log('Insert response:', volunteerData, volunteerError);
+      console.log(`Attempt ${attempt + 1} response:`, { data, error });
 
-    if (volunteerError) {
-      // If it's an RLS error, provide helpful message
-      if (volunteerError.code === '42501') {
-        console.log('RLS error - database permissions issue');
-        // Try one more time with a delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const { data: retryData, error: retryError } = await supabase
-          .from('volunteers')
-          .insert(volunteerRecord)
-          .select()
-          .single();
-          
-        if (retryError) {
-          throw new Error('Registration failed due to database permissions. Please contact support.');
+      if (error) {
+        console.error(`Attempt ${attempt + 1} failed:`, error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        insertError = error;
+        // Wait before retry
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        // Success on retry
-        onRegister({
-          ...formData,
-          id: retryData.id,
-          status: 'pending'
-        });
-        alert('Registration successful! You can now log in.');
       } else {
-        throw volunteerError;
+        volunteerData = data;
+        console.log('Insert successful:', data);
+        break;
       }
-    } else {
-      // Success! Call the parent callback
-      onRegister({
-        ...formData,
-        id: volunteerData.id,
-        status: 'pending'
-      });
-      alert('Registration successful! You can now log in.');
     }
+
+    if (insertError && !volunteerData) {
+      console.error('All insert attempts failed:', insertError);
+      console.error('Error code:', insertError.code);
+      console.error('Error message:', insertError.message);
+      console.error('Error details:', insertError.details);
+      console.error('Error hint:', insertError.hint);
+      
+      // Check if it's an RLS error
+      if (insertError.code === '42501' || insertError.message?.includes('policy')) {
+        throw new Error(`Database permissions error.
+
+Error: ${insertError.message}
+
+Please run FINAL_RLS_FIX.sql in Supabase to fix RLS policies.`);
+      } else if (insertError.code === 'PGRST116') {
+        throw new Error(`No rows returned. This might be an RLS issue.
+
+Error: ${insertError.message}
+
+Please run FINAL_RLS_FIX.sql in Supabase.`);
+      } else if (insertError.message?.includes('406') || insertError.message?.includes('Not Acceptable')) {
+        throw new Error(`HTTP 406 Error - RLS policy is blocking the insert.
+
+Please run FINAL_RLS_FIX.sql in Supabase SQL Editor.
+
+Technical details: ${insertError.message}`);
+      } else {
+        throw new Error(`Registration failed: ${insertError.message || 'Unknown error'}\n\nPlease check the console for details and contact support if this persists.`);
+      }
+    }
+
+    // Success!
+    onRegister({
+      ...formData,
+      id: volunteerData.id,
+      status: 'pending'
+    });
+    alert('Registration successful!\n\nYour volunteer profile has been created.\n\nPlease click "Sign in here" below to log in with your credentials.');
 
   } catch (err) {
     console.error('Registration error:', err);

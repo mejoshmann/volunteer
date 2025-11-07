@@ -100,18 +100,20 @@ function App() {
     // After registration, show login
     setCurrentView('login');
     
-    // Small delay to ensure auth state is updated
+    // Longer delay to ensure volunteer profile is created
     setTimeout(async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          // Additional delay to ensure volunteer profile is fully created
+          await new Promise(resolve => setTimeout(resolve, 500));
           setUser(user);
           setCurrentView('volunteer');
         }
       } catch (error) {
         console.error('Error checking user after registration:', error);
       }
-    }, 1500);
+    }, 2000); // Increased from 1500 to 2000ms
   };
 
   const handleLogout = async () => {

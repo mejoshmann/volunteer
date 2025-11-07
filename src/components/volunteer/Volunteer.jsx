@@ -119,6 +119,13 @@ const Volunteer = ({ user, onLogout }) => {
       setLoading(true);
       // Load volunteer profile
       const volunteer = await volunteerService.getCurrentVolunteer();
+      
+      if (!volunteer) {
+        console.error('No volunteer profile found for user:', user?.email);
+        alert('No volunteer profile found. This may happen if:\n\n1. You registered but your profile wasn\'t created due to RLS policies\n2. Your account needs to be set up\n\nPlease try logging out and registering again, or contact support.');
+        // Still load opportunities so user can see the calendar
+      }
+      
       setCurrentVolunteer(volunteer);
 
       // Load opportunities with signups
@@ -126,6 +133,7 @@ const Volunteer = ({ user, onLogout }) => {
       setOpportunities(opps);
     } catch (error) {
       console.error('Error loading data:', error);
+      alert('Error loading data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
@@ -133,6 +141,12 @@ const Volunteer = ({ user, onLogout }) => {
 
   // Quick signup function for logged-in volunteers
   const quickSignUp = async (opportunityId) => {
+    // Check if volunteer profile exists
+    if (!currentVolunteer) {
+      alert('No volunteer profile found. Please log out and register again, or contact support if the issue persists.');
+      return;
+    }
+    
     try {
       await signupService.signUpForOpportunity(opportunityId);
       // Reload opportunities to get updated signup data
@@ -1482,9 +1496,9 @@ Freestyle Vancouver Volunteer Opportunity\r
 
   // Desktop layout
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
       {/* Navigation */}
-      <nav className="h-16 bg-white shadow-sm border-b border-gray-200">
+      <nav className="h-16 bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -1507,6 +1521,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                   >
                     <Settings size={20} />
                     <span className="hidden sm:inline">Admin</span>
+                  </button>
+                  <button
+                    onClick={onLogout}
+                    className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <LogOut size={20} />
+                    <span className="hidden sm:inline">Logout</span>
                   </button>
                 </>
               ) : (
@@ -1542,12 +1563,12 @@ Freestyle Vancouver Volunteer Opportunity\r
         </div>
       </nav>
 
-      <div className="flex max-w-7xl mx-auto">
+      <div className="flex max-w-7xl mx-auto flex-1 overflow-hidden">
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 flex flex-col overflow-hidden">
           {/* Calendar Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">
+          <div className="flex justify-between items-center mb-3 flex-shrink-0">
+            <h2 className="text-2xl font-bold text-gray-900">
               {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
             </h2>
             <div className="flex space-x-2">
@@ -1581,31 +1602,35 @@ Freestyle Vancouver Volunteer Opportunity\r
           </div>
 
           {/* Calendar Grid */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-            <div className="grid grid-cols-7 gap-px bg-gray-200">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 flex-1 flex flex-col min-h-0">
+            <div className="grid grid-cols-7 gap-px bg-gray-200 flex-shrink-0">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                 <div
                   key={day}
-                  className="bg-gray-50 p-3 text-center font-semibold text-gray-700 text-sm"
+                  className="bg-gray-50 p-2 text-center font-semibold text-gray-700 text-sm"
                 >
                   {day}
                 </div>
               ))}
+            </div>
+            <div className="grid grid-cols-7 gap-px bg-gray-200 flex-1 overflow-auto">
               {calendarDays.map((day, index) => {
                 const isToday = day.date.toDateString() === new Date().toDateString();
                 return (
                   <div
                     key={index}
-                    className={`bg-white p-2 min-h-[120px] ${
+                    className={`bg-white p-2 flex flex-col ${
                       !day.isCurrentMonth ? "bg-gray-50" : ""
-                    } ${isToday ? "ring-2 ring-blue-500 ring-inset" : ""}`}
+                    } ${
+                      isToday ? "ring-2 ring-blue-500 ring-inset" : ""
+                    }`}
                   >
-                    <div className={`text-sm font-semibold mb-2 ${
+                    <div className={`text-sm font-semibold mb-1 flex-shrink-0 ${
                       !day.isCurrentMonth ? "text-gray-400" : isToday ? "text-blue-600" : "text-gray-900"
                     }`}>
                       {day.date.getDate()}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
                       {day.opportunities.map((opportunity) => {
                         const signedUpCount = opportunity.signups ? opportunity.signups.length : 0;
                         const userIsSignedUp = isSignedUp(opportunity);
@@ -1679,16 +1704,16 @@ Freestyle Vancouver Volunteer Opportunity\r
 
           {/* Admin Panel - Volunteer List */}
           {currentView === "admin" && (
-            <div className="mt-8 bg-white rounded-lg shadow p-6">
-              <h3 className="text-xl font-bold mb-4">Volunteer Management</h3>
+            <div className="mt-4 bg-white rounded-lg shadow p-4 flex-1 overflow-auto">
+              <h3 className="text-lg font-bold mb-3">Volunteer Management</h3>
               {opportunities.map((opportunity) => {
                 const signups = opportunity.signups || [];
                 return (
-                  <div key={opportunity.id} className="mb-6 border-b pb-4">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={opportunity.id} className="mb-4 border-b pb-3">
+                    <div className="flex justify-between items-start mb-1">
                       <div>
-                        <h4 className="font-semibold">{opportunity.title}</h4>
-                        <p className="text-sm text-gray-600">
+                        <h4 className="font-semibold text-sm">{opportunity.title}</h4>
+                        <p className="text-xs text-gray-600">
                           {opportunity.date} at {opportunity.time} -{" "}
                           {opportunity.location}
                         </p>
@@ -1708,16 +1733,16 @@ Freestyle Vancouver Volunteer Opportunity\r
                         Volunteers ({signups.length}/{opportunity.max_volunteers}):
                       </strong>
                       {signups.length > 0 ? (
-                        <div className="mt-2 space-y-2">
+                        <div className="mt-1 space-y-1">
                           {signups.map((signup) => {
                             const volunteer = signup.volunteer;
                             if (!volunteer) return null;
                             return (
                               <div
                                 key={signup.id}
-                                className="bg-gray-50 p-3 rounded"
+                                className="bg-gray-50 p-2 rounded"
                               >
-                                <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div className="grid grid-cols-2 gap-2 text-xs">
                                   <div>
                                     <strong>Name:</strong> {volunteer.first_name}{" "}
                                     {volunteer.last_name}
