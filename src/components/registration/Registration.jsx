@@ -182,7 +182,7 @@ Technical details: ${insertError.message}`);
       id: volunteerData.id,
       status: 'pending'
     });
-    alert('Registration successful!\n\nYour volunteer profile has been created.\n\nPlease click "Sign in here" below to log in with your credentials.');
+    alert('Registration successful!\n\nYour volunteer profile has been created.\n\nPlease check your email for confirmation link.');
 
   } catch (err) {
     console.error('Registration error:', err);
