@@ -531,52 +531,86 @@ Freestyle Vancouver Volunteer Opportunity\r
 
   // Mobile Calendar View Component
   const MobileCalendarView = () => {
-    const today = new Date();
-    const days = [];
-    
-    // Generate next 14 days
-    for (let i = 0; i < 14; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() + i);
-      days.push({
-        date: date,
-        opportunities: getOpportunitiesForDate(date)
-      });
-    }
-    
     return (
-      <div className="space-y-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Upcoming Opportunities</h2>
-          <div className="space-y-3">
-            {days.map((day, index) => (
-              <div 
-                key={index} 
-                className="p-3 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => {
-                  setSelectedDate(day.date);
-                  setMobileView("day");
-                }}
+      <div className="p-4 space-y-4">
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() - 1);
+              setSelectedDate(newDate);
+            }}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <h2 className="text-lg font-bold text-gray-900">
+            {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+          </h2>
+          <button
+            onClick={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() + 1);
+              setSelectedDate(newDate);
+            }}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            aria-label="Next month"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+          <div className="grid grid-cols-7 gap-px bg-gray-200">
+            {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
+              <div
+                key={day}
+                className="bg-gray-50 p-2 text-center font-semibold text-gray-700 text-xs"
               >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold">
-                      {day.date.toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </h3>
-                    {day.date.toDateString() === today.toDateString() && (
-                      <span className="text-xs text-blue-600 font-medium">Today</span>
-                    )}
-                  </div>
-                  <div className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
-                    {day.opportunities.length} {day.opportunities.length === 1 ? 'opportunity' : 'opportunities'}
-                  </div>
-                </div>
+                {day}
               </div>
             ))}
+            {calendarDays.map((day, index) => {
+              const isToday = day.date.toDateString() === new Date().toDateString();
+              return (
+                <div
+                  key={index}
+                  className={`bg-white p-1 min-h-[80px] ${
+                    !day.isCurrentMonth ? "bg-gray-50" : ""
+                  } ${isToday ? "ring-2 ring-blue-500 ring-inset" : ""}`}
+                  onClick={() => {
+                    setSelectedDate(day.date);
+                    setMobileView("day");
+                  }}
+                >
+                  <div className={`text-xs font-semibold mb-1 ${
+                    !day.isCurrentMonth ? "text-gray-400" : isToday ? "text-blue-600" : "text-gray-900"
+                  }`}>
+                    {day.date.getDate()}
+                  </div>
+                  <div className="space-y-0.5">
+                    {day.opportunities.slice(0, 3).map((opportunity) => (
+                      <div
+                        key={opportunity.id}
+                        className={`text-[11px] p-1 rounded truncate ${
+                          opportunity.type === "on-snow"
+                            ? "bg-blue-100 text-blue-900"
+                            : "bg-green-100 text-green-900"
+                        }`}
+                      >
+                        {opportunity.time}
+                      </div>
+                    ))}
+                    {day.opportunities.length > 3 && (
+                      <div className="text-[11px] text-gray-500 text-center">
+                        +{day.opportunities.length - 3}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1416,11 +1450,11 @@ Freestyle Vancouver Volunteer Opportunity\r
           <>
             {/* Backdrop */}
             <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 bg-transparent z-40"
               onClick={() => setSidebarOpen(false)}
             ></div>
             {/* Sidebar */}
-            <div className="fixed right-0 top-0 bottom-0 w-4/5 max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300">
+            <div className="fixed right-0 top-0 bottom-0 w-full bg-white shadow-xl z-50 transform transition-transform duration-300">
               <div className="h-full flex flex-col">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                   <h2 className="text-lg font-bold">Menu</h2>
