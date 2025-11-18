@@ -15,7 +15,6 @@ const Admin = () => {
 
     if (username === adminUsername && password === adminPassword) {
       // Handle successful login
-      console.log('Login successful');
       // setIsAdminLoggedIn(true);
     } else {
       alert('Invalid credentials');
@@ -75,7 +74,7 @@ const Admin = () => {
         </div>
         <div className="mt-4 text-center">
           <button
-            onClick={() => console.log('Switch to volunteer view')}
+            onClick={() => setCurrentView('volunteer')}
             className="text-blue-600 hover:text-blue-800"
             disabled={loading}
           >

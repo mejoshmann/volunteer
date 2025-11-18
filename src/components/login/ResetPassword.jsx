@@ -30,8 +30,30 @@ const ResetPassword = ({ onPasswordReset }) => {
     setSuccess(false);
 
     // Validation
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      setLoading(false);
+      return;
+    }
+
+    // Strong password validation
+    if (!/[A-Z]/.test(newPassword)) {
+      setError('Password must contain at least one uppercase letter');
+      setLoading(false);
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      setError('Password must contain at least one lowercase letter');
+      setLoading(false);
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setError('Password must contain at least one number');
+      setLoading(false);
+      return;
+    }
+    if (!/[!@#$%^&*]/.test(newPassword)) {
+      setError('Password must contain at least one special character (!@#$%^&*)');
       setLoading(false);
       return;
     }
@@ -58,7 +80,6 @@ const ResetPassword = ({ onPasswordReset }) => {
       }
     } catch (err) {
       setError('Failed to reset password. Please try again.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -101,8 +122,8 @@ const ResetPassword = ({ onPasswordReset }) => {
                 onChange={(e) => setNewPassword(e.target.value)}
                 disabled={loading}
                 required
-                minLength={6}
-                placeholder="At least 6 characters"
+                minLength={8}
+                placeholder="Min 8 chars, 1 uppercase, 1 number, 1 special char"
               />
             </div>
 

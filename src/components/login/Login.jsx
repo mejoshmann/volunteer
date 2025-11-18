@@ -13,20 +13,36 @@ const Login = ({ onLogin, onShowRegister, onShowForgotPassword }) => {
     setLoading(true);
     setError('');
 
+    // Sanitize and validate inputs
+    const email = loginData.email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    if (!loginData.password || loginData.password.length < 6) {
+      setError('Invalid credentials');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error: supabaseError } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
+        email: email,
         password: loginData.password
       });
 
       if (supabaseError) {
         // Better error messages
         if (supabaseError.message.includes('Email not confirmed')) {
-          setError('Please check your email and click the confirmation link before signing in. If you can\'t find it, check your spam folder.');
+          setError('Please check your email and click the confirmation link before signing in.');
         } else if (supabaseError.message.includes('Invalid login credentials')) {
-          setError('Invalid email or password. Please try again.');
+          setError('Invalid email or password');
         } else {
-          setError(supabaseError.message);
+          setError('Login failed. Please try again.');
         }
       } else if (data.user) {
         // Optional: fetch volunteer profile if needed
@@ -36,12 +52,10 @@ const Login = ({ onLogin, onShowRegister, onShowForgotPassword }) => {
           .eq('user_id', data.user.id)
           .single();
 
-        if (profileError) console.log(profileError);
         onLogin({ user: data.user, volunteer: volunteerProfile });
       }
     } catch (err) {
       setError('Login failed. Please try again.');
-      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -99,6 +99,44 @@ const Volunteer = ({ user, onLogout }) => {
   const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day'
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Track date range for loading opportunities
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    return {
+      start: new Date(today.getFullYear(), today.getMonth() - 2, 1),
+      end: new Date(today.getFullYear(), today.getMonth() + 3, 0)
+    };
+  });
+
+  // Load opportunities for a specific date range
+  const loadOpportunitiesForRange = async (startDate, endDate) => {
+    try {
+      const opps = await opportunityService.getOpportunitiesWithSignups(startDate, endDate);
+      setOpportunities(opps);
+    } catch (error) {
+      alert('Error loading opportunities. Please try again.');
+    }
+  };
+
+  // Update date range when month changes
+  const handleMonthChange = (newDate) => {
+    setSelectedDate(newDate);
+    
+    // Check if we need to load more data
+    const newMonth = newDate.getMonth();
+    const newYear = newDate.getFullYear();
+    const rangeStart = dateRange.start;
+    const rangeEnd = dateRange.end;
+    
+    // Expand range if navigating outside current range
+    if (newDate < rangeStart || newDate > rangeEnd) {
+      const newStart = new Date(newYear, newMonth - 2, 1);
+      const newEnd = new Date(newYear, newMonth + 3, 0);
+      setDateRange({ start: newStart, end: newEnd });
+      loadOpportunitiesForRange(newStart, newEnd);
+    }
+  };
+
   // Check for mobile on resize
   useEffect(() => {
     const handleResize = () => {
@@ -121,25 +159,23 @@ const Volunteer = ({ user, onLogout }) => {
       const volunteer = await volunteerService.getCurrentVolunteer();
       
       if (!volunteer) {
-        console.error('No volunteer profile found for user:', user?.email);
         alert('No volunteer profile found. This may happen if:\n\n1. You registered but your profile wasn\'t created due to RLS policies\n2. Your account needs to be set up\n\nPlease try logging out and registering again, or contact support.');
         // Still load opportunities so user can see the calendar
       }
       
       setCurrentVolunteer(volunteer);
 
-      // Load opportunities with signups
+      // Load opportunities with date filtering (current month ± 2 months for performance)
       const opps = await opportunityService.getOpportunitiesWithSignups();
       setOpportunities(opps);
     } catch (error) {
-      console.error('Error loading data:', error);
       alert('Error loading data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Quick signup function for logged-in volunteers
+  // Quick signup function with optimistic updates
   const quickSignUp = async (opportunityId) => {
     // Check if volunteer profile exists
     if (!currentVolunteer) {
@@ -147,28 +183,77 @@ const Volunteer = ({ user, onLogout }) => {
       return;
     }
     
+    // Optimistic update - immediately update UI
+    const optimisticSignup = {
+      id: `temp-${Date.now()}`,
+      volunteer: {
+        id: currentVolunteer.id,
+        user_id: user.id,
+        first_name: currentVolunteer.first_name,
+        last_name: currentVolunteer.last_name,
+        email: currentVolunteer.email,
+        mobile: currentVolunteer.mobile,
+        training_mountain: currentVolunteer.training_mountain
+      },
+      signed_up_at: new Date().toISOString()
+    };
+
+    setOpportunities(prev => prev.map(opp => {
+      if (opp.id === opportunityId) {
+        return {
+          ...opp,
+          signups: [...(opp.signups || []), optimisticSignup]
+        };
+      }
+      return opp;
+    }));
+    
     try {
       await signupService.signUpForOpportunity(opportunityId);
-      // Reload opportunities to get updated signup data
+      // Reload only this opportunity's data to sync
       const opps = await opportunityService.getOpportunitiesWithSignups();
       setOpportunities(opps);
-      alert('Successfully signed up!');
     } catch (error) {
-      console.error('Error signing up:', error);
+      // Revert optimistic update on error
+      setOpportunities(prev => prev.map(opp => {
+        if (opp.id === opportunityId) {
+          return {
+            ...opp,
+            signups: (opp.signups || []).filter(s => s.id !== optimisticSignup.id)
+          };
+        }
+        return opp;
+      }));
       alert(error.message || 'Failed to sign up. Please try again.');
     }
   };
 
-  // Remove signup
+  // Remove signup with optimistic updates
   const removeSignup = async (opportunityId) => {
+    // Store original state for rollback
+    const originalOpportunities = [...opportunities];
+
+    // Optimistic update - immediately remove from UI
+    setOpportunities(prev => prev.map(opp => {
+      if (opp.id === opportunityId) {
+        return {
+          ...opp,
+          signups: (opp.signups || []).filter(signup => 
+            !(signup.volunteer && signup.volunteer.user_id === user.id)
+          )
+        };
+      }
+      return opp;
+    }));
+
     try {
       await signupService.removeSignup(opportunityId);
-      // Reload opportunities to get updated signup data
+      // Reload to sync with server
       const opps = await opportunityService.getOpportunitiesWithSignups();
       setOpportunities(opps);
-      alert('Signup removed successfully.');
     } catch (error) {
-      console.error('Error removing signup:', error);
+      // Revert optimistic update on error
+      setOpportunities(originalOpportunities);
       alert(error.message || 'Failed to remove signup. Please try again.');
     }
   };
@@ -260,6 +345,9 @@ Freestyle Vancouver Volunteer Opportunity\r
     document.body.removeChild(link);
   };
 
+  // SECURITY WARNING: Client-side admin authentication is insecure!
+  // This should be replaced with proper server-side authentication
+  // Anyone with browser dev tools can bypass this
   const handleAdminLogin = () => {
 
      const adminUsername = import.meta.env.VITE_ADMIN_USERNAME;
@@ -278,12 +366,9 @@ Freestyle Vancouver Volunteer Opportunity\r
   // Add new opportunity
   const addOpportunity = async (opportunityData) => {
     try {
-      console.log('Creating opportunity with data:', opportunityData);
       const createdOpp = await opportunityService.createOpportunity(opportunityData);
-      console.log('Created opportunity:', createdOpp);
       return createdOpp; // Return the created opportunity
     } catch (error) {
-      console.error('Error creating opportunity:', error);
       // Show more detailed error message
       const errorMessage = error.message || 'Failed to create opportunity. Please try again.';
       alert(`Error: ${errorMessage}\n\nDetails: ${error.details || error.hint || 'No additional details'}`);
@@ -310,7 +395,6 @@ Freestyle Vancouver Volunteer Opportunity\r
       setOpportunities(opps);
       alert('Opportunity updated successfully!');
     } catch (error) {
-      console.error('Error updating opportunity:', error);
       alert('Failed to update opportunity. Please try again.');
     }
   };
@@ -325,7 +409,6 @@ Freestyle Vancouver Volunteer Opportunity\r
         setOpportunities(opps);
         alert('Opportunity deleted successfully!');
       } catch (error) {
-        console.error('Error deleting opportunity:', error);
         alert('Failed to delete opportunity. Please try again.');
       }
     }
@@ -538,7 +621,7 @@ Freestyle Vancouver Volunteer Opportunity\r
             onClick={() => {
               const newDate = new Date(selectedDate);
               newDate.setMonth(newDate.getMonth() - 1);
-              setSelectedDate(newDate);
+              handleMonthChange(newDate);
             }}
             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
             aria-label="Previous month"
@@ -552,7 +635,7 @@ Freestyle Vancouver Volunteer Opportunity\r
             onClick={() => {
               const newDate = new Date(selectedDate);
               newDate.setMonth(newDate.getMonth() + 1);
-              setSelectedDate(newDate);
+              handleMonthChange(newDate);
             }}
             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
             aria-label="Next month"
@@ -633,20 +716,29 @@ Freestyle Vancouver Volunteer Opportunity\r
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringEndDate, setRecurringEndDate] = useState("");
 
+    // Sanitize text input to prevent XSS
+    const sanitizeText = (text) => {
+      if (typeof text !== 'string') return text;
+      return text.trim().replace(/[<>]/g, '').slice(0, 500);
+    };
+
     const handleSubmit = () => {
-      console.log('Form submit clicked');
-      console.log('Form data:', formData);
-      console.log('Is recurring:', isRecurring);
-      console.log('Recurring end date:', recurringEndDate);
+      
+      // Sanitize inputs
+      const sanitizedData = {
+        ...formData,
+        title: sanitizeText(formData.title),
+        description: sanitizeText(formData.description)
+      };
       
       if (
-        !formData.date ||
-        !formData.time ||
-        !formData.title ||
-        !formData.description ||
-        !formData.location ||
-        !formData.type ||
-        !formData.max_volunteers
+        !sanitizedData.date ||
+        !sanitizedData.time ||
+        !sanitizedData.title ||
+        !sanitizedData.description ||
+        !sanitizedData.location ||
+        !sanitizedData.type ||
+        !sanitizedData.max_volunteers
       ) {
         alert("Please fill in all required fields");
         return;
@@ -662,20 +754,18 @@ Freestyle Vancouver Volunteer Opportunity\r
         return;
       }
 
-      console.log('All validations passed, calling onSubmit');
-      
       if (opportunity) {
         // Editing existing opportunity
-        updateOpportunity(opportunity.id, formData);
+        updateOpportunity(opportunity.id, sanitizedData);
         onClose();
       } else {
         // Creating new opportunity
         if (isRecurring) {
           // Create multiple opportunities (async, don't close form yet)
-          createRecurringOpportunities(formData, recurringEndDate);
+          createRecurringOpportunities(sanitizedData, recurringEndDate);
         } else {
           // Create single opportunity
-          onSubmit(formData);
+          onSubmit(sanitizedData);
           onClose();
           handleOpportunityCreated();
         }
@@ -700,8 +790,6 @@ Freestyle Vancouver Volunteer Opportunity\r
         currentDate.setDate(currentDate.getDate() + 7);
       }
       
-      console.log(`Creating ${opportunities.length} recurring opportunities`);
-      
       try {
         // Create all opportunities
         let created = 0;
@@ -714,7 +802,6 @@ Freestyle Vancouver Volunteer Opportunity\r
         await handleOpportunityCreated();
         alert(`Successfully created ${created} recurring opportunities!`);
       } catch (error) {
-        console.error('Error creating recurring opportunities:', error);
         alert(`Failed to create all opportunities. Created some successfully, but encountered an error.`);
       }
     };
@@ -1366,7 +1453,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                     onClick={() => {
                       const newDate = new Date(selectedDate);
                       newDate.setMonth(newDate.getMonth() - 1);
-                      setSelectedDate(newDate);
+                      handleMonthChange(newDate);
                     }}
                     className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium flex items-center"
                     aria-label="Previous month"
@@ -1374,7 +1461,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <ChevronLeft size={20} />
                   </button>
                   <button
-                    onClick={() => setSelectedDate(new Date())}
+                    onClick={() => handleMonthChange(new Date())}
                     className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
                   >
                     Today
@@ -1383,7 +1470,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                     onClick={() => {
                       const newDate = new Date(selectedDate);
                       newDate.setMonth(newDate.getMonth() + 1);
-                      setSelectedDate(newDate);
+                      handleMonthChange(newDate);
                     }}
                     className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium flex items-center"
                     aria-label="Next month"

@@ -31,7 +31,6 @@ function App() {
 
     // Listen for auth changes (including email confirmation)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event, 'Session:', session);
       
       // Handle different auth events
       switch (event) {
@@ -80,7 +79,6 @@ function App() {
         setCurrentView('volunteer');
       }
     } catch (error) {
-      console.error('Error checking user:', error);
       // If there's an auth error, clear the user and show login
       setUser(null);
       setCurrentView('login');
@@ -111,7 +109,7 @@ function App() {
           setCurrentView('volunteer');
         }
       } catch (error) {
-        console.error('Error checking user after registration:', error);
+        // Error checking user after registration
       }
     }, 2000); // Increased from 1500 to 2000ms
   };
@@ -122,7 +120,6 @@ function App() {
       setUser(null);
       setCurrentView('landing');
     } catch (error) {
-      console.error('Error logging out:', error);
       // Even if there's an error, clear local state
       setUser(null);
       setCurrentView('landing');

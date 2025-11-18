@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
+// Use environment variables for security
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-const supabaseUrl = 'https://hntwqnuabmhvxtxenunt.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhudHdxbnVhYm1odnh0eGVudW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzODg0NDUsImV4cCI6MjA2Nzk2NDQ0NX0.4iLB6EsDFBvImx2CmsLd9ic8nqILPI8g6Zh5ct40e1g'
-
-
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -22,7 +24,6 @@ export const volunteerService = {
       .single()
 
     if (error) {
-      console.error('Error fetching volunteer:', error)
       return null
     }
 
@@ -132,9 +133,6 @@ export const opportunityService = {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
-      console.log('Creating opportunity:', opportunityData);
-      console.log('Current user:', user);
-      
       if (!user) {
         throw new Error('You must be logged in to create opportunities');
       }
@@ -149,17 +147,11 @@ export const opportunityService = {
         .single()
 
       if (error) {
-        console.error('Supabase error:', error);
-        console.error('Error code:', error.code);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
         throw error;
       }
       
-      console.log('Successfully created opportunity:', data);
       return data
     } catch (err) {
-      console.error('Exception in createOpportunity:', err);
       throw err;
     }
   },
@@ -187,8 +179,21 @@ export const opportunityService = {
     if (error) throw error
   },
 
-  // Get opportunities with signup information
-  async getOpportunitiesWithSignups() {
+  // Get opportunities with signup information (date-filtered for performance)
+  async getOpportunitiesWithSignups(startDate = null, endDate = null) {
+    // Default to current month ± 2 months if no dates provided
+    if (!startDate) {
+      const today = new Date();
+      startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    }
+    if (!endDate) {
+      const today = new Date();
+      endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+    }
+
+    const startDateStr = startDate instanceof Date ? startDate.toISOString().split('T')[0] : startDate;
+    const endDateStr = endDate instanceof Date ? endDate.toISOString().split('T')[0] : endDate;
+
     const { data, error } = await supabase
       .from('opportunities')
       .select(`
@@ -207,10 +212,42 @@ export const opportunityService = {
           )
         )
       `)
+      .gte('date', startDateStr)
+      .lte('date', endDateStr)
       .order('date', { ascending: true })
 
     if (error) throw error
     return data || []
+  },
+
+  // Get all opportunities (for admin - with pagination)
+  async getAllOpportunitiesWithSignups(page = 1, pageSize = 50) {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error, count } = await supabase
+      .from('opportunities')
+      .select(`
+        *,
+        signups (
+          id,
+          signed_up_at,
+          volunteer:volunteers (
+            id,
+            user_id,
+            first_name,
+            last_name,
+            email,
+            mobile,
+            training_mountain
+          )
+        )
+      `, { count: 'exact' })
+      .order('date', { ascending: false })
+      .range(from, to)
+
+    if (error) throw error
+    return { data: data || [], total: count || 0, page, pageSize }
   }
 }
 
