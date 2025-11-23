@@ -241,12 +241,11 @@ Technical details: ${insertError.message}`);
   };
 
   const strengthOptions = [
-    'First Aid',
-    'Equipment Management',
-    'Event Organization',
-    'Snow Shovelling',
-    'Lunch Detail',
-    'Coordinator'
+    { name: 'First Aid', description: 'Provide medical assistance and safety support' },
+    { name: 'Snow Shovelling', description: 'Clear snow from training areas paths and ensure safe conditions' },
+    { name: 'Lunch Support', description: 'Supervise athletes during breaks' },
+    { name: 'Equipment Support', description: 'Help with equipment setup and teardown' },
+    { name: 'Coordinator', description: 'Roll-call of athletes and volunteer coordination'}
   ];
 
   return (
@@ -365,15 +364,24 @@ Technical details: ${insertError.message}`);
             <label className="block text-sm font-medium mb-2">Strengths (select all that apply)</label>
             <div className="grid grid-cols-2 gap-2">
               {strengthOptions.map(strength => (
-                <label key={strength} className="flex items-center space-x-2">
+                <label key={strength.name} className="flex items-center space-x-2 group relative">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    checked={formData.strengths.includes(strength)}
-                    onChange={() => handleStrengthChange(strength)}
+                    checked={formData.strengths.includes(strength.name)}
+                    onChange={() => handleStrengthChange(strength.name)}
                     disabled={loading}
                   />
-                  <span className="text-sm">{strength}</span>
+                  <span className="text-sm">{strength.name}</span>
+                  <div className="relative inline-block">
+                    <span className="inline-flex items-center justify-center w-4 h-4 text-xs text-gray-500 border border-gray-400 rounded-full cursor-help hover:bg-gray-100 hover:text-gray-700">
+                      ?
+                    </span>
+                    <div className="absolute left-6 top-0 invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-2 px-3 w-48 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {strength.description}
+                      <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                    </div>
+                  </div>
                 </label>
               ))}
             </div>

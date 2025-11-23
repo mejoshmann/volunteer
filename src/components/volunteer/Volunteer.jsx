@@ -1250,9 +1250,9 @@ Freestyle Vancouver Volunteer Opportunity\r
           <div className="border-t pt-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Contact Us</h3>
             <div className="space-y-2 text-sm">
-              <a href="tel:604-555-0123" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+              <a href="tel:778-320-9776" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
                 <Phone size={14} className="mr-2" />
-                (604) 555-0123
+                (778) 320-9776
               </a>
               <a href="mailto:volunteers@freestylevancouver.ca" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
                 <Mail size={14} className="mr-2" />
