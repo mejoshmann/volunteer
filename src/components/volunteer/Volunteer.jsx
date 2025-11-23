@@ -98,6 +98,7 @@ const Volunteer = ({ user, onLogout }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day'
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dayOfWeekFilter, setDayOfWeekFilter] = useState("all"); // Filter for days of the week
 
   // Track date range for loading opportunities
   const [dateRange, setDateRange] = useState(() => {
@@ -807,9 +808,9 @@ Freestyle Vancouver Volunteer Opportunity\r
     };
 
     return (
-      <div className="fixed h-screen inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-          <div className="flex justify-between items-center mb-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="bg-white rounded-lg p-4 w-full max-w-md my-4">
+          <div className="flex justify-between items-center mb-3">
             <h3 className="text-xl font-bold">
               {opportunity ? "Edit" : "Add"} Opportunity
             </h3>
@@ -821,7 +822,7 @@ Freestyle Vancouver Volunteer Opportunity\r
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium mb-1">Date *</label>
               <input
@@ -923,7 +924,7 @@ Freestyle Vancouver Volunteer Opportunity\r
             </div>
 
             {/* Recurring Opportunity Section */}
-            <div className="border-t pt-4 mt-4">
+            <div className="border-t pt-3 mt-3">
               <div className="flex items-center mb-3">
                 <input
                   type="checkbox"
@@ -963,7 +964,7 @@ Freestyle Vancouver Volunteer Opportunity\r
               )}
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4">
+            <div className="flex justify-end space-x-3 pt-3">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
@@ -986,10 +987,32 @@ Freestyle Vancouver Volunteer Opportunity\r
   // Sidebar Component
   const Sidebar = () => {
     const todayOpportunities = getOpportunitiesForDate(new Date());
-    const upcomingOpportunities = opportunities
-      .filter((opp) => new Date(opp.date) >= new Date())
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(0, 5);
+    
+    // Filter upcoming opportunities by day of week
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
+    
+    let upcomingOpportunities = opportunities
+      .filter((opp) => {
+        const oppDate = new Date(opp.date);
+        oppDate.setHours(0, 0, 0, 0);
+        return oppDate >= today;
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Apply day of week filter if not "all"
+    if (dayOfWeekFilter !== "all") {
+      upcomingOpportunities = upcomingOpportunities.filter((opp) => {
+        // Parse date in local timezone to avoid day shifting
+        const dateParts = opp.date.split('-');
+        const oppDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const dayOfWeek = oppDate.getDay();
+        return dayOfWeek === parseInt(dayOfWeekFilter);
+      });
+    }
+    
+    // Limit to 5 after filtering
+    upcomingOpportunities = upcomingOpportunities.slice(0, 5);
 
     // Get opportunities the user is signed up for
     const mySignups = opportunities
@@ -1183,7 +1206,23 @@ Freestyle Vancouver Volunteer Opportunity\r
 
           {/* Upcoming Opportunities */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Upcoming Opportunities</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Upcoming Opportunities</h3>
+              <select
+                value={dayOfWeekFilter}
+                onChange={(e) => setDayOfWeekFilter(e.target.value)}
+                className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Days</option>
+                <option value="0">Sunday</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+              </select>
+            </div>
             {upcomingOpportunities.length > 0 ? (
               <div className="space-y-2">
                 {upcomingOpportunities.map((opportunity) => {
