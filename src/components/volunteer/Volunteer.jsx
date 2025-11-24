@@ -1144,9 +1144,9 @@ Freestyle Vancouver Volunteer Opportunity\r
               <label className="block text-sm font-medium mb-1">Team Name *</label>
               <input
                 type="text"
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Cypress Coaches, Weekend Warriors"
               />
             </div>
@@ -1154,10 +1154,10 @@ Freestyle Vancouver Volunteer Opportunity\r
             <div>
               <label className="block text-sm font-medium mb-1">Description (optional)</label>
               <textarea
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                 rows="2"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Brief description of the team"
               />
             </div>
