@@ -107,6 +107,19 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
 
   try {
     
+    // Check if email already exists in volunteers table
+    const { data: existingVolunteer } = await supabase
+      .from('volunteers')
+      .select('email')
+      .eq('email', sanitizedData.email.toLowerCase())
+      .single();
+    
+    if (existingVolunteer) {
+      setError('This email address is already registered. Please sign in instead.');
+      setLoading(false);
+      return;
+    }
+    
     // 1. Create user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: sanitizedData.email,
