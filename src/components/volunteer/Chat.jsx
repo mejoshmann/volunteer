@@ -18,6 +18,14 @@ const Chat = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-select room if only one available and none selected
+  useEffect(() => {
+    if (chatRooms.length === 1 && !selectedChatRoom) {
+      console.log('Auto-selecting single room:', chatRooms[0]);
+      setSelectedChatRoom(chatRooms[0]);
+    }
+  }, [chatRooms, selectedChatRoom, setSelectedChatRoom]);
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
