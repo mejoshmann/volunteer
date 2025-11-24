@@ -132,6 +132,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 10. Create triggers for updated_at
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS update_chat_rooms_updated_at ON chat_rooms;
+DROP TRIGGER IF EXISTS update_messages_updated_at ON messages;
+
 CREATE TRIGGER update_chat_rooms_updated_at
   BEFORE UPDATE ON chat_rooms
   FOR EACH ROW
