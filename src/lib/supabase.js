@@ -504,5 +504,19 @@ export const chatService = {
 
     if (error) throw error
     return data || []
+  },
+
+  // Delete a message (only your own)
+  async deleteMessage(messageId) {
+    const volunteer = await volunteerService.getCurrentVolunteer()
+    if (!volunteer) throw new Error('Not authenticated')
+
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId)
+      .eq('sender_id', volunteer.id) // Can only delete own messages
+
+    if (error) throw error
   }
 }

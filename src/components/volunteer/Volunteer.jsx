@@ -557,6 +557,16 @@ Freestyle Vancouver Volunteer Opportunity\r
     }
   };
 
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await chatService.deleteMessage(messageId);
+      // Remove message from local state
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (error) {
+      alert('Failed to delete message. Please try again.');
+    }
+  };
+
   // Load messages when chat room changes
   useEffect(() => {
     if (selectedChatRoom) {
@@ -1732,6 +1742,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                   newMessage={newMessage}
                   setNewMessage={setNewMessage}
                   handleSendMessage={handleSendMessage}
+                  handleDeleteMessage={handleDeleteMessage}
                   currentVolunteer={currentVolunteer}
                 />
               </div>
@@ -2284,6 +2295,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                   newMessage={newMessage}
                   setNewMessage={setNewMessage}
                   handleSendMessage={handleSendMessage}
+                  handleDeleteMessage={handleDeleteMessage}
                   currentVolunteer={currentVolunteer}
                 />
               </div>

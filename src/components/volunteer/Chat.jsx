@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, Users as UsersIcon } from 'lucide-react';
+import { MessageSquare, Send, Users as UsersIcon, Trash2 } from 'lucide-react';
 
 const Chat = ({ 
   chatRooms, 
@@ -9,6 +9,7 @@ const Chat = ({
   newMessage, 
   setNewMessage, 
   handleSendMessage,
+  handleDeleteMessage,
   currentVolunteer 
 }) => {
   const messagesEndRef = useRef(null);
@@ -96,10 +97,10 @@ const Chat = ({
             return (
               <div
                 key={msg.id}
-                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group`}
               >
                 <div
-                  className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                  className={`max-w-[70%] rounded-lg px-4 py-2 relative ${
                     isOwnMessage
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-900'
@@ -116,6 +117,20 @@ const Chat = ({
                   <div className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
                     {formatTime(msg.created_at)}
                   </div>
+                  {/* Delete button - only show for own messages */}
+                  {isOwnMessage && handleDeleteMessage && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Delete this message?')) {
+                          handleDeleteMessage(msg.id);
+                        }
+                      }}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Delete message"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
                 </div>
               </div>
             );
