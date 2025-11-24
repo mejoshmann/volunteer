@@ -48,7 +48,6 @@ const Chat = ({
           value={selectedChatRoom?.id || ''}
           onChange={(e) => {
             const room = chatRooms.find(r => r.id === e.target.value);
-            console.log('Selected room:', room);
             setSelectedChatRoom(room);
           }}
           className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
@@ -111,13 +110,8 @@ const Chat = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input - Always show for debugging */}
+      {/* Message Input */}
       <div className="border-t p-4">
-        {!selectedChatRoom && (
-          <div className="text-xs text-red-600 mb-2">
-            Debug: No room selected. Please select a room from dropdown above.
-          </div>
-        )}
         <div className="flex space-x-2">
           <input
             type="text"
