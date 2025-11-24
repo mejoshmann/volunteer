@@ -118,6 +118,13 @@ const Chat = ({
 
       {/* Message Input */}
       <div className="border-t p-4">
+        {/* Debug info */}
+        <div className="text-xs mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+          <div>Selected Room: {selectedChatRoom ? selectedChatRoom.name : 'NONE'}</div>
+          <div>Room ID: {selectedChatRoom?.id || 'NONE'}</div>
+          <div>Total Rooms: {chatRooms.length}</div>
+          <div>Input Disabled: {!selectedChatRoom ? 'YES' : 'NO'}</div>
+        </div>
         <div className="flex space-x-2">
           <input
             type="text"
