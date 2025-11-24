@@ -112,6 +112,10 @@ const Volunteer = ({ user, onLogout }) => {
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastReadMessageId, setLastReadMessageId] = useState(null);
+  
+  // Team management state
+  const [showTeamChatForm, setShowTeamChatForm] = useState(false);
+  const [allVolunteers, setAllVolunteers] = useState([]);
 
   // Track date range for loading opportunities
   const [dateRange, setDateRange] = useState(() => {
@@ -1064,6 +1068,158 @@ Freestyle Vancouver Volunteer Opportunity\r
     );
   };
 
+  // Team Chat Form Component
+  const TeamChatForm = ({ onClose }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      description: '',
+      selectedVolunteers: []
+    });
+    const [loading, setLoading] = useState(false);
+
+    // Load all volunteers when form opens
+    useEffect(() => {
+      const loadVolunteers = async () => {
+        try {
+          const vols = await volunteerService.getAllVolunteers();
+          setAllVolunteers(vols);
+        } catch (error) {
+          console.error('Failed to load volunteers:', error);
+        }
+      };
+      loadVolunteers();
+    }, []);
+
+    const handleSubmit = async () => {
+      if (!formData.name || formData.selectedVolunteers.length === 0) {
+        alert('Please enter a team name and select at least one volunteer');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        await chatService.createTeamChatRoom(
+          formData.name,
+          formData.description,
+          formData.selectedVolunteers
+        );
+        
+        // Reload chat rooms
+        const rooms = await chatService.getUserChatRooms();
+        setChatRooms(rooms);
+        
+        alert(`Team chat "${formData.name}" created successfully!`);
+        onClose();
+      } catch (error) {
+        alert(`Failed to create team chat: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const toggleVolunteer = (volunteerId) => {
+      setFormData(prev => ({
+        ...prev,
+        selectedVolunteers: prev.selectedVolunteers.includes(volunteerId)
+          ? prev.selectedVolunteers.filter(id => id !== volunteerId)
+          : [...prev.selectedVolunteers, volunteerId]
+      }));
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="bg-white rounded-lg p-4 w-full max-w-2xl my-4">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-xl font-bold">Create Team Chat</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Team Name *</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded-md"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Cypress Coaches, Weekend Warriors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Description (optional)</label>
+              <textarea
+                className="w-full p-2 border rounded-md"
+                rows="2"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Brief description of the team"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Select Team Members *</label>
+              <div className="border rounded-md p-3 max-h-64 overflow-y-auto">
+                {allVolunteers.length === 0 ? (
+                  <p className="text-sm text-gray-500">Loading volunteers...</p>
+                ) : (
+                  <div className="space-y-2">
+                    {allVolunteers.map(volunteer => (
+                      <label
+                        key={volunteer.id}
+                        className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedVolunteers.includes(volunteer.id)}
+                          onChange={() => toggleVolunteer(volunteer.id)}
+                          className="mr-3 h-4 w-4 text-blue-600 rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">
+                            {volunteer.first_name} {volunteer.last_name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {volunteer.training_mountain} • {volunteer.email}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.selectedVolunteers.length} volunteer(s) selected
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {loading ? 'Creating...' : 'Create Team Chat'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Sidebar Component
   const Sidebar = () => {
     const todayOpportunities = getOpportunitiesForDate(new Date());
@@ -1487,6 +1643,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <Plus size={20} />
                   </button>
                   <button
+                    onClick={() => setShowTeamChatForm(true)}
+                    className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    title="Create Team Chat"
+                  >
+                    <MessageSquare size={20} />
+                  </button>
+                  <button
                     onClick={() => setCurrentView("volunteer")}
                     className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
                   >
@@ -1831,6 +1994,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <span className="hidden sm:inline">Add Opportunity</span>
                   </button>
                   <button
+                    onClick={() => setShowTeamChatForm(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    <MessageSquare size={20} />
+                    <span className="hidden sm:inline">Create Team</span>
+                  </button>
+                  <button
                     onClick={() => setCurrentView("volunteer")}
                     className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   >
@@ -2129,6 +2299,12 @@ Freestyle Vancouver Volunteer Opportunity\r
           opportunity={editingOpportunity}
           onClose={() => setEditingOpportunity(null)}
           onSubmit={updateOpportunity}
+        />
+      )}
+
+      {showTeamChatForm && (
+        <TeamChatForm
+          onClose={() => setShowTeamChatForm(false)}
         />
       )}
     </div>
