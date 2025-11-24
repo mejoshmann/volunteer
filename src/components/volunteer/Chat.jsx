@@ -48,6 +48,7 @@ const Chat = ({
           value={selectedChatRoom?.id || ''}
           onChange={(e) => {
             const room = chatRooms.find(r => r.id === e.target.value);
+            console.log('Selected room:', room);
             setSelectedChatRoom(room);
           }}
           className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
@@ -66,7 +67,12 @@ const Chat = ({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 ? (
+        {!selectedChatRoom ? (
+          <div className="text-center text-gray-500 py-8">
+            <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
+            <p>Select a chat room to start messaging</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
             <p>No messages yet. Start the conversation!</p>
@@ -105,32 +111,36 @@ const Chat = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      {selectedChatRoom && (
-        <div className="border-t p-4">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              className="flex-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!newMessage.trim()}
-              className={`px-4 py-2 rounded-md flex items-center space-x-2 ${
-                newMessage.trim()
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              <Send size={18} />
-            </button>
+      {/* Message Input - Always show for debugging */}
+      <div className="border-t p-4">
+        {!selectedChatRoom && (
+          <div className="text-xs text-red-600 mb-2">
+            Debug: No room selected. Please select a room from dropdown above.
           </div>
+        )}
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={selectedChatRoom ? "Type a message..." : "Select a room first..."}
+            disabled={!selectedChatRoom}
+            className="flex-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={!newMessage.trim() || !selectedChatRoom}
+            className={`px-4 py-2 rounded-md flex items-center space-x-2 ${
+              newMessage.trim() && selectedChatRoom
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Send size={18} />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
