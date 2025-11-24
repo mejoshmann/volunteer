@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import logo from '../../assets/logo.png';
-import { supabase, volunteerService, opportunityService, signupService } from '../../lib/supabase';
+import { supabase, volunteerService, opportunityService, signupService, chatService } from '../../lib/supabase';
+import Chat from './Chat';
 import {
   Calendar,
   Plus,
@@ -23,6 +24,8 @@ import {
   X as CloseIcon,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -96,9 +99,16 @@ const Volunteer = ({ user, onLogout }) => {
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [openCalendarDropdown, setOpenCalendarDropdown] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day'
+  const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day' or 'chat'
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dayOfWeekFilter, setDayOfWeekFilter] = useState("all"); // Filter for days of the week
+  
+  // Chat state
+  const [chatRooms, setChatRooms] = useState([]);
+  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [chatSubscription, setChatSubscription] = useState(null);
 
   // Track date range for loading opportunities
   const [dateRange, setDateRange] = useState(() => {
@@ -169,6 +179,21 @@ const Volunteer = ({ user, onLogout }) => {
       // Load opportunities with date filtering (current month ± 2 months for performance)
       const opps = await opportunityService.getOpportunitiesWithSignups();
       setOpportunities(opps);
+      
+      // Load chat rooms
+      if (volunteer) {
+        try {
+          const rooms = await chatService.getUserChatRooms();
+          setChatRooms(rooms);
+          // Auto-select Club Notifications room if available
+          const clubNotifications = rooms.find(r => r.type === 'club_notifications');
+          if (clubNotifications) {
+            setSelectedChatRoom(clubNotifications);
+          }
+        } catch (chatError) {
+          console.error('Failed to load chat rooms:', chatError);
+        }
+      }
     } catch (error) {
       alert('Error loading data. Please try refreshing the page.');
     } finally {
@@ -345,6 +370,51 @@ Freestyle Vancouver Volunteer Opportunity\r
     link.click();
     document.body.removeChild(link);
   };
+
+  // Chat functions
+  const loadChatMessages = async (roomId) => {
+    try {
+      const msgs = await chatService.getChatMessages(roomId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedChatRoom) return;
+
+    try {
+      await chatService.sendMessage(selectedChatRoom.id, newMessage);
+      setNewMessage('');
+    } catch (error) {
+      alert('Failed to send message. Please try again.');
+    }
+  };
+
+  // Load messages when chat room changes
+  useEffect(() => {
+    if (selectedChatRoom) {
+      loadChatMessages(selectedChatRoom.id);
+      
+      // Subscribe to real-time messages
+      const subscription = chatService.subscribeToMessages(
+        selectedChatRoom.id,
+        (newMsg) => {
+          setMessages(prev => [...prev, newMsg]);
+        }
+      );
+      
+      setChatSubscription(subscription);
+      
+      // Cleanup on unmount or room change
+      return () => {
+        if (subscription) {
+          subscription.unsubscribe();
+        }
+      };
+    }
+  }, [selectedChatRoom]);
 
   // SECURITY WARNING: Client-side admin authentication is insecure!
   // This should be replaced with proper server-side authentication
@@ -1417,6 +1487,19 @@ Freestyle Vancouver Volunteer Opportunity\r
                 Calendar
               </button>
               <button
+                onClick={() => setMobileView("chat")}
+                className={`flex-1 py-3 text-center font-medium text-sm ${
+                  mobileView === "chat"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500"
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-1">
+                  <MessageSquare size={16} />
+                  <span>Chat</span>
+                </div>
+              </button>
+              <button
                 onClick={() => setMobileView("day")}
                 className={`flex-1 py-3 text-center font-medium text-sm ${
                   mobileView === "day"
@@ -1435,6 +1518,19 @@ Freestyle Vancouver Volunteer Opportunity\r
           {currentView === "volunteer" ? (
             mobileView === "calendar" ? (
               <MobileCalendarView />
+            ) : mobileView === "chat" ? (
+              <div className="h-[calc(100vh-12rem)]">
+                <Chat
+                  chatRooms={chatRooms}
+                  selectedChatRoom={selectedChatRoom}
+                  setSelectedChatRoom={setSelectedChatRoom}
+                  messages={messages}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  handleSendMessage={handleSendMessage}
+                  currentVolunteer={currentVolunteer}
+                />
+              </div>
             ) : (
               <div>
                 <div className="p-4 bg-white border-b border-gray-200">
@@ -1723,8 +1819,8 @@ Freestyle Vancouver Volunteer Opportunity\r
         </div>
       </nav>
 
-      <div className="flex max-w-7xl mx-auto flex-1 overflow-hidden">
-        {/* Main Content */}
+      <div className="flex max-w-full mx-auto flex-1 overflow-hidden">
+        {/* Main Content - Calendar (50% width) */}
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           {/* Calendar Header */}
           <div className="flex justify-between items-center mb-3 flex-shrink-0">
@@ -1936,6 +2032,22 @@ Freestyle Vancouver Volunteer Opportunity\r
             </div>
           )}
         </div>
+
+        {/* Chat Section (only in volunteer view) */}
+        {currentView === "volunteer" && (
+          <div className="w-96 border-l border-gray-200 flex flex-col overflow-hidden">
+            <Chat
+              chatRooms={chatRooms}
+              selectedChatRoom={selectedChatRoom}
+              setSelectedChatRoom={setSelectedChatRoom}
+              messages={messages}
+              newMessage={newMessage}
+              setNewMessage={setNewMessage}
+              handleSendMessage={handleSendMessage}
+              currentVolunteer={currentVolunteer}
+            />
+          </div>
+        )}
 
         {/* Sidebar */}
         <Sidebar />

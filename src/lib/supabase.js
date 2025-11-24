@@ -345,3 +345,164 @@ export const signupService = {
     return data || []
   }
 }
+
+// Chat management helpers
+export const chatService = {
+  // Get all chat rooms for current user
+  async getUserChatRooms() {
+    const volunteer = await volunteerService.getCurrentVolunteer()
+    if (!volunteer) throw new Error('Not authenticated')
+
+    const { data, error } = await supabase
+      .from('chat_room_members')
+      .select(`
+        chat_room_id,
+        role,
+        chat_rooms (
+          id,
+          name,
+          type,
+          description,
+          created_at
+        )
+      `)
+      .eq('volunteer_id', volunteer.id)
+
+    if (error) throw error
+    return data?.map(item => ({ ...item.chat_rooms, user_role: item.role })) || []
+  },
+
+  // Get messages for a chat room
+  async getChatMessages(chatRoomId, limit = 50) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        id,
+        content,
+        created_at,
+        sender:sender_id (
+          id,
+          first_name,
+          last_name
+        )
+      `)
+      .eq('chat_room_id', chatRoomId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+    return data?.reverse() || []
+  },
+
+  // Send a message
+  async sendMessage(chatRoomId, content) {
+    const volunteer = await volunteerService.getCurrentVolunteer()
+    if (!volunteer) throw new Error('Not authenticated')
+
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({
+        chat_room_id: chatRoomId,
+        sender_id: volunteer.id,
+        content: content.trim()
+      })
+      .select(`
+        id,
+        content,
+        created_at,
+        sender:sender_id (
+          id,
+          first_name,
+          last_name
+        )
+      `)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Subscribe to new messages in a chat room
+  subscribeToMessages(chatRoomId, callback) {
+    return supabase
+      .channel(`messages:${chatRoomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_room_id=eq.${chatRoomId}`
+        },
+        async (payload) => {
+          // Fetch the full message with sender details
+          const { data } = await supabase
+            .from('messages')
+            .select(`
+              id,
+              content,
+              created_at,
+              sender:sender_id (
+                id,
+                first_name,
+                last_name
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single()
+          
+          if (data) callback(data)
+        }
+      )
+      .subscribe()
+  },
+
+  // Create a new team chat room (admin only)
+  async createTeamChatRoom(name, description, volunteerIds) {
+    // Create the room
+    const { data: room, error: roomError } = await supabase
+      .from('chat_rooms')
+      .insert({
+        name,
+        type: 'team',
+        description
+      })
+      .select()
+      .single()
+
+    if (roomError) throw roomError
+
+    // Add members
+    const members = volunteerIds.map(volunteerId => ({
+      chat_room_id: room.id,
+      volunteer_id: volunteerId,
+      role: 'member'
+    }))
+
+    const { error: membersError } = await supabase
+      .from('chat_room_members')
+      .insert(members)
+
+    if (membersError) throw membersError
+
+    return room
+  },
+
+  // Get members of a chat room
+  async getChatRoomMembers(chatRoomId) {
+    const { data, error } = await supabase
+      .from('chat_room_members')
+      .select(`
+        role,
+        volunteer:volunteer_id (
+          id,
+          first_name,
+          last_name
+        )
+      `)
+      .eq('chat_room_id', chatRoomId)
+
+    if (error) throw error
+    return data || []
+  }
+}

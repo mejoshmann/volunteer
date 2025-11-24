@@ -1,0 +1,142 @@
+import { useState, useRef, useEffect } from 'react';
+import { MessageSquare, Send, Users as UsersIcon } from 'lucide-react';
+
+const Chat = ({ 
+  chatRooms, 
+  selectedChatRoom, 
+  setSelectedChatRoom, 
+  messages, 
+  newMessage, 
+  setNewMessage, 
+  handleSendMessage,
+  currentVolunteer 
+}) => {
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-white">
+      {/* Chat Room Selector */}
+      <div className="border-b p-4">
+        <div className="flex items-center space-x-2 mb-2">
+          <MessageSquare size={20} className="text-blue-600" />
+          <h2 className="text-lg font-bold text-gray-900">Team Chat</h2>
+        </div>
+        <select
+          value={selectedChatRoom?.id || ''}
+          onChange={(e) => {
+            const room = chatRooms.find(r => r.id === e.target.value);
+            setSelectedChatRoom(room);
+          }}
+          className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+        >
+          {chatRooms.length === 0 && (
+            <option value="">No chat rooms available</option>
+          )}
+          {chatRooms.map(room => (
+            <option key={room.id} value={room.id}>
+              {room.name}
+              {room.type === 'club_notifications' && ' 📢'}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
+            <p>No messages yet. Start the conversation!</p>
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isOwnMessage = msg.sender?.id === currentVolunteer?.id;
+            return (
+              <div
+                key={msg.id}
+                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                    isOwnMessage
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-900'
+                  }`}
+                >
+                  {!isOwnMessage && (
+                    <div className="text-xs font-semibold mb-1 opacity-75">
+                      {msg.sender?.first_name} {msg.sender?.last_name}
+                    </div>
+                  )}
+                  <div className="text-sm whitespace-pre-wrap break-words">
+                    {msg.content}
+                  </div>
+                  <div className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {formatTime(msg.created_at)}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Message Input */}
+      {selectedChatRoom && (
+        <div className="border-t p-4">
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type a message..."
+              className="flex-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim()}
+              className={`px-4 py-2 rounded-md flex items-center space-x-2 ${
+                newMessage.trim()
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Send size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Chat;
