@@ -87,7 +87,7 @@ const AdminLogin = ({ loginData, setLoginData, handleAdminLogin, setCurrentView 
 );
 
 // Team Chat Form Component - Moved outside to prevent re-renders
-const TeamChatForm = ({ onClose, onChatRoomsUpdate }) => {
+const TeamChatForm = ({ onClose, onChatRoomsUpdate, onRoomCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -117,7 +117,7 @@ const TeamChatForm = ({ onClose, onChatRoomsUpdate }) => {
 
     setLoading(true);
     try {
-      await chatService.createTeamChatRoom(
+      const newRoom = await chatService.createTeamChatRoom(
         formData.name,
         formData.description,
         formData.selectedVolunteers
@@ -126,6 +126,12 @@ const TeamChatForm = ({ onClose, onChatRoomsUpdate }) => {
       // Reload chat rooms
       const rooms = await chatService.getUserChatRooms();
       onChatRoomsUpdate(rooms);
+      
+      // Find and select the newly created room
+      const createdRoom = rooms.find(r => r.id === newRoom.id);
+      if (createdRoom && onRoomCreated) {
+        onRoomCreated(createdRoom);
+      }
       
       alert(`Team chat "${formData.name}" created successfully!`);
       onClose();
@@ -2306,6 +2312,10 @@ Freestyle Vancouver Volunteer Opportunity\r
         <TeamChatForm
           onClose={() => setShowTeamChatForm(false)}
           onChatRoomsUpdate={(rooms) => setChatRooms(rooms)}
+          onRoomCreated={(room) => {
+            setSelectedChatRoom(room);
+            setChatOpen(true);
+          }}
         />
       )}
     </div>
