@@ -40,6 +40,10 @@ const Chat = ({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  console.log('Chat Debug - selectedChatRoom:', selectedChatRoom);
+  console.log('Chat Debug - chatRooms:', chatRooms);
+  console.log('Chat Debug - selectedChatRoom ID:', selectedChatRoom?.id);
+
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Chat Room Selector */}
@@ -47,7 +51,9 @@ const Chat = ({
         <select
           value={selectedChatRoom?.id || ''}
           onChange={(e) => {
+            console.log('Dropdown changed - value:', e.target.value);
             const room = chatRooms.find(r => r.id === e.target.value);
+            console.log('Found room:', room);
             setSelectedChatRoom(room);
           }}
           className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
