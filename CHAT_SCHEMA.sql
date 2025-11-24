@@ -152,6 +152,13 @@ VALUES ('Club Notifications', 'club_notifications', 'Important announcements and
 ON CONFLICT DO NOTHING;
 
 -- 12. Enable Realtime for messages table
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+-- Note: This will fail silently if already added, which is fine
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL; -- Table already in publication, ignore error
+END $$;
 
 -- Done! Chat system is ready to use.
