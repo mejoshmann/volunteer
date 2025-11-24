@@ -44,10 +44,6 @@ const Chat = ({
     <div className="h-full flex flex-col bg-white">
       {/* Chat Room Selector */}
       <div className="border-b p-4">
-        <div className="flex items-center space-x-2 mb-2">
-          <MessageSquare size={20} className="text-blue-600" />
-          <h2 className="text-lg font-bold text-gray-900">Team Chat</h2>
-        </div>
         <select
           value={selectedChatRoom?.id || ''}
           onChange={(e) => {

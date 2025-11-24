@@ -109,6 +109,9 @@ const Volunteer = ({ user, onLogout }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [chatSubscription, setChatSubscription] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [lastReadMessageId, setLastReadMessageId] = useState(null);
 
   // Track date range for loading opportunities
   const [dateRange, setDateRange] = useState(() => {
@@ -401,7 +404,14 @@ Freestyle Vancouver Volunteer Opportunity\r
       const subscription = chatService.subscribeToMessages(
         selectedChatRoom.id,
         (newMsg) => {
-          setMessages(prev => [...prev, newMsg]);
+          setMessages(prev => {
+            const updated = [...prev, newMsg];
+            // Increment unread count if chat is closed and message is not from current user
+            if (!chatOpen && newMsg.sender?.id !== currentVolunteer?.id) {
+              setUnreadCount(c => c + 1);
+            }
+            return updated;
+          });
         }
       );
       
@@ -414,7 +424,7 @@ Freestyle Vancouver Volunteer Opportunity\r
         }
       };
     }
-  }, [selectedChatRoom]);
+  }, [selectedChatRoom, chatOpen, currentVolunteer]);
 
   // SECURITY WARNING: Client-side admin authentication is insecure!
   // This should be replaced with proper server-side authentication
@@ -1355,6 +1365,31 @@ Freestyle Vancouver Volunteer Opportunity\r
             )}
           </div>
 
+          {/* Team Chat Button */}
+          {currentView === "volunteer" && (
+            <div className="border-t pt-6">
+              <button
+                onClick={() => {
+                  setChatOpen(true);
+                  setUnreadCount(0);
+                }}
+                className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg transition-colors group"
+              >
+                <div className="flex items-center space-x-2">
+                  <MessageSquare size={18} className="text-blue-600" />
+                  <span className="font-semibold text-blue-900">Team Chat</span>
+                </div>
+                {unreadCount > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold animate-pulse">
+                      {unreadCount}
+                    </span>
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
+
           {/* Contact Section */}
           <div className="border-t pt-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Contact Us</h3>
@@ -1819,8 +1854,8 @@ Freestyle Vancouver Volunteer Opportunity\r
         </div>
       </nav>
 
-      <div className="flex max-w-full mx-auto flex-1 overflow-hidden">
-        {/* Main Content - Calendar (50% width) */}
+      <div className="flex max-w-7xl mx-auto flex-1 overflow-hidden">
+        {/* Main Content - Calendar */}
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           {/* Calendar Header */}
           <div className="flex justify-between items-center mb-3 flex-shrink-0">
@@ -2033,25 +2068,53 @@ Freestyle Vancouver Volunteer Opportunity\r
           )}
         </div>
 
-        {/* Chat Section (only in volunteer view) */}
-        {currentView === "volunteer" && (
-          <div className="w-96 border-l border-gray-200 flex flex-col overflow-hidden">
-            <Chat
-              chatRooms={chatRooms}
-              selectedChatRoom={selectedChatRoom}
-              setSelectedChatRoom={setSelectedChatRoom}
-              messages={messages}
-              newMessage={newMessage}
-              setNewMessage={setNewMessage}
-              handleSendMessage={handleSendMessage}
-              currentVolunteer={currentVolunteer}
-            />
-          </div>
-        )}
-
         {/* Sidebar */}
         <Sidebar />
       </div>
+
+      {/* Chat Slide-out Panel */}
+      {chatOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-30 z-40"
+            onClick={() => setChatOpen(false)}
+          ></div>
+          
+          {/* Chat Panel */}
+          <div className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300">
+            <div className="h-full flex flex-col">
+              {/* Chat Header */}
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-blue-50">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare size={20} className="text-blue-600" />
+                  <h2 className="text-lg font-bold text-gray-900">Team Chat</h2>
+                </div>
+                <button
+                  onClick={() => setChatOpen(false)}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                >
+                  <CloseIcon size={20} />
+                </button>
+              </div>
+              
+              {/* Chat Component */}
+              <div className="flex-1 overflow-hidden">
+                <Chat
+                  chatRooms={chatRooms}
+                  selectedChatRoom={selectedChatRoom}
+                  setSelectedChatRoom={setSelectedChatRoom}
+                  messages={messages}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  handleSendMessage={handleSendMessage}
+                  currentVolunteer={currentVolunteer}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modals */}
       {showOpportunityForm && (
