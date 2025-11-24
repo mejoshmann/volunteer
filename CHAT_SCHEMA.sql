@@ -69,13 +69,10 @@ CREATE POLICY "Users can view members of their rooms"
   USING (true);  -- Simplified: authenticated users can see memberships
 
 -- Allow inserting members when creating team chats (admin function)
+-- Any authenticated user can add members to chat rooms
 CREATE POLICY "Users can add members to rooms"
   ON chat_room_members FOR INSERT
-  WITH CHECK (
-    volunteer_id IN (
-      SELECT id FROM volunteers WHERE user_id = auth.uid()
-    )
-  );
+  WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 8. RLS Policies for messages
 -- Users can view messages in rooms they're members of
