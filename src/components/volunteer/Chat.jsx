@@ -106,11 +106,12 @@ const Chat = ({
                       : 'bg-gray-100 text-gray-900'
                   }`}
                 >
-                  {!isOwnMessage && (
-                    <div className="text-xs font-semibold mb-1 opacity-75">
-                      {msg.sender?.first_name} {msg.sender?.last_name}
-                    </div>
-                  )}
+                  {/* Always show sender name */}
+                  <div className={`text-xs font-semibold mb-1 ${
+                    isOwnMessage ? 'text-blue-100' : 'opacity-75'
+                  }`}>
+                    {msg.sender?.first_name} {msg.sender?.last_name}
+                  </div>
                   <div className="text-sm whitespace-pre-wrap break-words">
                     {msg.content}
                   </div>
