@@ -22,7 +22,6 @@ const Chat = ({
   // Auto-select room if only one available and none selected
   useEffect(() => {
     if (chatRooms.length === 1 && !selectedChatRoom) {
-      console.log('Auto-selecting single room:', chatRooms[0]);
       setSelectedChatRoom(chatRooms[0]);
     }
   }, [chatRooms, selectedChatRoom, setSelectedChatRoom]);
@@ -49,10 +48,6 @@ const Chat = ({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  console.log('Chat Debug - selectedChatRoom:', selectedChatRoom);
-  console.log('Chat Debug - chatRooms:', chatRooms);
-  console.log('Chat Debug - selectedChatRoom ID:', selectedChatRoom?.id);
-
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Chat Room Selector */}
@@ -60,9 +55,7 @@ const Chat = ({
         <select
           value={selectedChatRoom?.id || ''}
           onChange={(e) => {
-            console.log('Dropdown changed - value:', e.target.value);
             const room = chatRooms.find(r => r.id === e.target.value);
-            console.log('Found room:', room);
             setSelectedChatRoom(room);
           }}
           className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
@@ -142,13 +135,6 @@ const Chat = ({
 
       {/* Message Input */}
       <div className="border-t p-4">
-        {/* Debug info */}
-        <div className="text-xs mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-          <div>Selected Room: {selectedChatRoom ? selectedChatRoom.name : 'NONE'}</div>
-          <div>Room ID: {selectedChatRoom?.id || 'NONE'}</div>
-          <div>Total Rooms: {chatRooms.length}</div>
-          <div>Input Disabled: {!selectedChatRoom ? 'YES' : 'NO'}</div>
-        </div>
         <div className="flex space-x-2">
           <input
             type="text"
