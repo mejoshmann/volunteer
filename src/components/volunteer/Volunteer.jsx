@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import logo from '../../assets/logo.png';
-import { supabase, volunteerService, opportunityService, signupService } from '../../lib/supabase';
+import { supabase, volunteerService, opportunityService, signupService, chatService } from '../../lib/supabase';
+import Chat from './Chat';
 import {
   Calendar,
   Plus,
@@ -23,6 +24,8 @@ import {
   X as CloseIcon,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -83,6 +86,165 @@ const AdminLogin = ({ loginData, setLoginData, handleAdminLogin, setCurrentView 
   </div>
 );
 
+// Team Chat Form Component - Moved outside to prevent re-renders
+const TeamChatForm = ({ onClose, onChatRoomsUpdate, onRoomCreated }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    selectedVolunteers: []
+  });
+  const [loading, setLoading] = useState(false);
+  const [allVolunteers, setAllVolunteers] = useState([]);
+
+  // Load all volunteers when form opens
+  useEffect(() => {
+    const loadVolunteers = async () => {
+      try {
+        const vols = await volunteerService.getAllVolunteers();
+        setAllVolunteers(vols);
+      } catch (error) {
+        console.error('Failed to load volunteers:', error);
+      }
+    };
+    loadVolunteers();
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!formData.name || formData.selectedVolunteers.length === 0) {
+      alert('Please enter a team name and select at least one volunteer');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const newRoom = await chatService.createTeamChatRoom(
+        formData.name,
+        formData.description,
+        formData.selectedVolunteers
+      );
+      
+      // Reload chat rooms
+      const rooms = await chatService.getUserChatRooms();
+      onChatRoomsUpdate(rooms);
+      
+      // Find and select the newly created room
+      const createdRoom = rooms.find(r => r.id === newRoom.id);
+      if (createdRoom && onRoomCreated) {
+        onRoomCreated(createdRoom);
+      }
+      
+      alert(`Team chat "${formData.name}" created successfully!`);
+      onClose();
+    } catch (error) {
+      alert(`Failed to create team chat: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleVolunteer = (volunteerId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedVolunteers: prev.selectedVolunteers.includes(volunteerId)
+        ? prev.selectedVolunteers.filter(id => id !== volunteerId)
+        : [...prev.selectedVolunteers, volunteerId]
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg p-4 w-full max-w-2xl my-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-xl font-bold">Create Team Chat</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Team Name *</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="e.g., Cypress Coaches, Weekend Warriors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Description (optional)</label>
+            <textarea
+              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+              rows="2"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Brief description of the team"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Select Team Members *</label>
+            <div className="border rounded-md p-3 max-h-64 overflow-y-auto">
+              {allVolunteers.length === 0 ? (
+                <p className="text-sm text-gray-500">Loading volunteers...</p>
+              ) : (
+                <div className="space-y-2">
+                  {allVolunteers.map(volunteer => (
+                    <label
+                      key={volunteer.id}
+                      className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.selectedVolunteers.includes(volunteer.id)}
+                        onChange={() => toggleVolunteer(volunteer.id)}
+                        className="mr-3 h-4 w-4 text-blue-600 rounded"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">
+                          {volunteer.first_name} {volunteer.last_name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {volunteer.training_mountain} • {volunteer.email}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.selectedVolunteers.length} volunteer(s) selected
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+            >
+              {loading ? 'Creating...' : 'Create Team Chat'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Volunteer = ({ user, onLogout }) => {
   // State management
   const [currentView, setCurrentView] = useState("volunteer"); // 'volunteer' or 'admin'
@@ -96,9 +258,22 @@ const Volunteer = ({ user, onLogout }) => {
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [openCalendarDropdown, setOpenCalendarDropdown] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day'
+  const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day' or 'chat'
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dayOfWeekFilter, setDayOfWeekFilter] = useState("all"); // Filter for days of the week
+  
+  // Chat state
+  const [chatRooms, setChatRooms] = useState([]);
+  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [chatSubscription, setChatSubscription] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [lastReadMessageId, setLastReadMessageId] = useState(null);
+  
+  // Team management state
+  const [showTeamChatForm, setShowTeamChatForm] = useState(false);
 
   // Track date range for loading opportunities
   const [dateRange, setDateRange] = useState(() => {
@@ -169,6 +344,21 @@ const Volunteer = ({ user, onLogout }) => {
       // Load opportunities with date filtering (current month ± 2 months for performance)
       const opps = await opportunityService.getOpportunitiesWithSignups();
       setOpportunities(opps);
+      
+      // Load chat rooms
+      if (volunteer) {
+        try {
+          const rooms = await chatService.getUserChatRooms();
+          setChatRooms(rooms);
+          // Auto-select Club Notifications room if available
+          const clubNotifications = rooms.find(r => r.type === 'club_notifications');
+          if (clubNotifications) {
+            setSelectedChatRoom(clubNotifications);
+          }
+        } catch (chatError) {
+          console.error('Failed to load chat rooms:', chatError);
+        }
+      }
     } catch (error) {
       alert('Error loading data. Please try refreshing the page.');
     } finally {
@@ -346,6 +536,68 @@ Freestyle Vancouver Volunteer Opportunity\r
     document.body.removeChild(link);
   };
 
+  // Chat functions
+  const loadChatMessages = async (roomId) => {
+    try {
+      const msgs = await chatService.getChatMessages(roomId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedChatRoom) return;
+
+    try {
+      await chatService.sendMessage(selectedChatRoom.id, newMessage);
+      setNewMessage('');
+    } catch (error) {
+      alert('Failed to send message. Please try again.');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await chatService.deleteMessage(messageId);
+      // Remove message from local state
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (error) {
+      alert('Failed to delete message. Please try again.');
+    }
+  };
+
+  // Load messages when chat room changes
+  useEffect(() => {
+    if (selectedChatRoom) {
+      loadChatMessages(selectedChatRoom.id);
+      
+      // Subscribe to real-time messages
+      const subscription = chatService.subscribeToMessages(
+        selectedChatRoom.id,
+        (newMsg) => {
+          setMessages(prev => {
+            const updated = [...prev, newMsg];
+            // Increment unread count if chat is closed and message is not from current user
+            if (!chatOpen && newMsg.sender?.id !== currentVolunteer?.id) {
+              setUnreadCount(c => c + 1);
+            }
+            return updated;
+          });
+        }
+      );
+      
+      setChatSubscription(subscription);
+      
+      // Cleanup on unmount or room change
+      return () => {
+        if (subscription) {
+          subscription.unsubscribe();
+        }
+      };
+    }
+  }, [selectedChatRoom, chatOpen, currentVolunteer]);
+
   // SECURITY WARNING: Client-side admin authentication is insecure!
   // This should be replaced with proper server-side authentication
   // Anyone with browser dev tools can bypass this
@@ -415,9 +667,20 @@ Freestyle Vancouver Volunteer Opportunity\r
     }
   };
 
+  // Helper function to parse date string in local timezone
+  const parseLocalDate = (dateStr) => {
+    const parts = dateStr.split('-');
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  };
+
   // Get opportunities for selected date
   const getOpportunitiesForDate = (date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    // Format date in local timezone to avoid UTC conversion issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
     return opportunities.filter((opp) => opp.date === dateStr);
   };
 
@@ -993,18 +1256,17 @@ Freestyle Vancouver Volunteer Opportunity\r
     
     let upcomingOpportunities = opportunities
       .filter((opp) => {
-        const oppDate = new Date(opp.date);
+        const oppDate = parseLocalDate(opp.date);
         oppDate.setHours(0, 0, 0, 0);
         return oppDate >= today;
       })
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
     
     // Apply day of week filter if not "all"
     if (dayOfWeekFilter !== "all") {
       upcomingOpportunities = upcomingOpportunities.filter((opp) => {
         // Parse date in local timezone to avoid day shifting
-        const dateParts = opp.date.split('-');
-        const oppDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const oppDate = parseLocalDate(opp.date);
         const dayOfWeek = oppDate.getDay();
         return dayOfWeek === parseInt(dayOfWeekFilter);
       });
@@ -1016,7 +1278,7 @@ Freestyle Vancouver Volunteer Opportunity\r
     // Get opportunities the user is signed up for
     const mySignups = opportunities
       .filter((opp) => isSignedUp(opp))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
 
     const getSignedUpCount = (opportunity) => {
       return opportunity.signups ? opportunity.signups.length : 0;
@@ -1076,7 +1338,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                       <div className="text-xs text-gray-600 space-y-1">
                         <div className="flex items-center">
                           <Calendar size={12} className="mr-1.5" />
-                          {new Date(opportunity.date).toLocaleDateString('en-US', { 
+                          {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                             weekday: 'short', 
                             month: 'short', 
                             day: 'numeric' 
@@ -1246,7 +1508,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                       <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                         <div className="flex items-center">
                           <Calendar size={12} className="mr-1" />
-                          {new Date(opportunity.date).toLocaleDateString('en-US', { 
+                          {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                             month: 'short', 
                             day: 'numeric' 
                           })} • {opportunity.time}
@@ -1283,6 +1545,31 @@ Freestyle Vancouver Volunteer Opportunity\r
               <p className="text-sm text-gray-500 italic">No upcoming opportunities</p>
             )}
           </div>
+
+          {/* Team Chat Button */}
+          {currentView === "volunteer" && (
+            <div className="border-t pt-6">
+              <button
+                onClick={() => {
+                  setChatOpen(true);
+                  setUnreadCount(0);
+                }}
+                className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg transition-colors group"
+              >
+                <div className="flex items-center space-x-2">
+                  <MessageSquare size={18} className="text-blue-600" />
+                  <span className="font-semibold text-blue-900">Team Chat</span>
+                </div>
+                {unreadCount > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold animate-pulse">
+                      {unreadCount}
+                    </span>
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Contact Section */}
           <div className="border-t pt-6">
@@ -1381,6 +1668,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <Plus size={20} />
                   </button>
                   <button
+                    onClick={() => setShowTeamChatForm(true)}
+                    className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    title="Create Team Chat"
+                  >
+                    <MessageSquare size={20} />
+                  </button>
+                  <button
                     onClick={() => setCurrentView("volunteer")}
                     className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
                   >
@@ -1416,6 +1710,19 @@ Freestyle Vancouver Volunteer Opportunity\r
                 Calendar
               </button>
               <button
+                onClick={() => setMobileView("chat")}
+                className={`flex-1 py-3 text-center font-medium text-sm ${
+                  mobileView === "chat"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500"
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-1">
+                  <MessageSquare size={16} />
+                  <span>Chat</span>
+                </div>
+              </button>
+              <button
                 onClick={() => setMobileView("day")}
                 className={`flex-1 py-3 text-center font-medium text-sm ${
                   mobileView === "day"
@@ -1434,6 +1741,20 @@ Freestyle Vancouver Volunteer Opportunity\r
           {currentView === "volunteer" ? (
             mobileView === "calendar" ? (
               <MobileCalendarView />
+            ) : mobileView === "chat" ? (
+              <div className="h-[calc(100vh-12rem)]">
+                <Chat
+                  chatRooms={chatRooms}
+                  selectedChatRoom={selectedChatRoom}
+                  setSelectedChatRoom={setSelectedChatRoom}
+                  messages={messages}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  handleSendMessage={handleSendMessage}
+                  handleDeleteMessage={handleDeleteMessage}
+                  currentVolunteer={currentVolunteer}
+                />
+              </div>
             ) : (
               <div>
                 <div className="p-4 bg-white border-b border-gray-200">
@@ -1699,6 +2020,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <span className="hidden sm:inline">Add Opportunity</span>
                   </button>
                   <button
+                    onClick={() => setShowTeamChatForm(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    <MessageSquare size={20} />
+                    <span className="hidden sm:inline">Create Team</span>
+                  </button>
+                  <button
                     onClick={() => setCurrentView("volunteer")}
                     className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   >
@@ -1723,7 +2051,7 @@ Freestyle Vancouver Volunteer Opportunity\r
       </nav>
 
       <div className="flex max-w-7xl mx-auto flex-1 overflow-hidden">
-        {/* Main Content */}
+        {/* Main Content - Calendar */}
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           {/* Calendar Header */}
           <div className="flex justify-between items-center mb-3 flex-shrink-0">
@@ -1940,6 +2268,51 @@ Freestyle Vancouver Volunteer Opportunity\r
         <Sidebar />
       </div>
 
+      {/* Chat Slide-out Panel */}
+      {chatOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-30 z-40"
+            onClick={() => setChatOpen(false)}
+          ></div>
+          
+          {/* Chat Panel */}
+          <div className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300">
+            <div className="h-full flex flex-col">
+              {/* Chat Header */}
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-blue-50">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare size={20} className="text-blue-600" />
+                  <h2 className="text-lg font-bold text-gray-900">Team Chat</h2>
+                </div>
+                <button
+                  onClick={() => setChatOpen(false)}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                >
+                  <CloseIcon size={20} />
+                </button>
+              </div>
+              
+              {/* Chat Component */}
+              <div className="flex-1 overflow-hidden">
+                <Chat
+                  chatRooms={chatRooms}
+                  selectedChatRoom={selectedChatRoom}
+                  setSelectedChatRoom={setSelectedChatRoom}
+                  messages={messages}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
+                  handleSendMessage={handleSendMessage}
+                  handleDeleteMessage={handleDeleteMessage}
+                  currentVolunteer={currentVolunteer}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Modals */}
       {showOpportunityForm && (
         <OpportunityForm
@@ -1953,6 +2326,17 @@ Freestyle Vancouver Volunteer Opportunity\r
           opportunity={editingOpportunity}
           onClose={() => setEditingOpportunity(null)}
           onSubmit={updateOpportunity}
+        />
+      )}
+
+      {showTeamChatForm && (
+        <TeamChatForm
+          onClose={() => setShowTeamChatForm(false)}
+          onChatRoomsUpdate={(rooms) => setChatRooms(rooms)}
+          onRoomCreated={(room) => {
+            setSelectedChatRoom(room);
+            setChatOpen(true);
+          }}
         />
       )}
     </div>
