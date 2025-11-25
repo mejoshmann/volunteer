@@ -674,7 +674,15 @@ Freestyle Vancouver Volunteer Opportunity\r
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
-    return opportunities.filter((opp) => opp.date === dateStr);
+    
+    console.log('Looking for opportunities on:', dateStr);
+    const found = opportunities.filter((opp) => {
+      console.log('Opportunity date from DB:', opp.date, 'Looking for:', dateStr, 'Match:', opp.date === dateStr);
+      return opp.date === dateStr;
+    });
+    console.log('Found', found.length, 'opportunities');
+    
+    return found;
   };
 
   // Generate calendar days
