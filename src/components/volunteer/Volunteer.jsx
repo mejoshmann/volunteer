@@ -667,6 +667,12 @@ Freestyle Vancouver Volunteer Opportunity\r
     }
   };
 
+  // Helper function to parse date string in local timezone
+  const parseLocalDate = (dateStr) => {
+    const parts = dateStr.split('-');
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  };
+
   // Get opportunities for selected date
   const getOpportunitiesForDate = (date) => {
     // Format date in local timezone to avoid UTC conversion issues
@@ -675,14 +681,7 @@ Freestyle Vancouver Volunteer Opportunity\r
     const day = String(date.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
     
-    console.log('Looking for opportunities on:', dateStr);
-    const found = opportunities.filter((opp) => {
-      console.log('Opportunity date from DB:', opp.date, 'Looking for:', dateStr, 'Match:', opp.date === dateStr);
-      return opp.date === dateStr;
-    });
-    console.log('Found', found.length, 'opportunities');
-    
-    return found;
+    return opportunities.filter((opp) => opp.date === dateStr);
   };
 
   // Generate calendar days
@@ -1258,18 +1257,17 @@ Freestyle Vancouver Volunteer Opportunity\r
     
     let upcomingOpportunities = opportunities
       .filter((opp) => {
-        const oppDate = new Date(opp.date);
+        const oppDate = parseLocalDate(opp.date);
         oppDate.setHours(0, 0, 0, 0);
         return oppDate >= today;
       })
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
     
     // Apply day of week filter if not "all"
     if (dayOfWeekFilter !== "all") {
       upcomingOpportunities = upcomingOpportunities.filter((opp) => {
         // Parse date in local timezone to avoid day shifting
-        const dateParts = opp.date.split('-');
-        const oppDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const oppDate = parseLocalDate(opp.date);
         const dayOfWeek = oppDate.getDay();
         return dayOfWeek === parseInt(dayOfWeekFilter);
       });
@@ -1281,7 +1279,7 @@ Freestyle Vancouver Volunteer Opportunity\r
     // Get opportunities the user is signed up for
     const mySignups = opportunities
       .filter((opp) => isSignedUp(opp))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
 
     const getSignedUpCount = (opportunity) => {
       return opportunity.signups ? opportunity.signups.length : 0;
@@ -1341,7 +1339,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                       <div className="text-xs text-gray-600 space-y-1">
                         <div className="flex items-center">
                           <Calendar size={12} className="mr-1.5" />
-                          {new Date(opportunity.date).toLocaleDateString('en-US', { 
+                          {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                             weekday: 'short', 
                             month: 'short', 
                             day: 'numeric' 
@@ -1511,7 +1509,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                       <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                         <div className="flex items-center">
                           <Calendar size={12} className="mr-1" />
-                          {new Date(opportunity.date).toLocaleDateString('en-US', { 
+                          {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                             month: 'short', 
                             day: 'numeric' 
                           })} • {opportunity.time}
