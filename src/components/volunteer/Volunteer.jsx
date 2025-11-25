@@ -890,7 +890,6 @@ Freestyle Vancouver Volunteer Opportunity\r
               </select>
             </div>
 
-            <div>
               <label className="block text-sm font-medium mb-1">Type *</label>
               <select
                 className="w-full p-2 border rounded-md"
