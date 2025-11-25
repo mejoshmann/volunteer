@@ -669,7 +669,11 @@ Freestyle Vancouver Volunteer Opportunity\r
 
   // Get opportunities for selected date
   const getOpportunitiesForDate = (date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    // Format date in local timezone to avoid UTC conversion issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
     return opportunities.filter((opp) => opp.date === dateStr);
   };
 
