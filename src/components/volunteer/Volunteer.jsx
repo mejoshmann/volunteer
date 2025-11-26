@@ -549,11 +549,16 @@ Freestyle Vancouver Volunteer Opportunity\r
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChatRoom) return;
 
+    const messageContent = newMessage.trim();
+    setNewMessage(''); // Clear input immediately
+
     try {
-      await chatService.sendMessage(selectedChatRoom.id, newMessage);
-      setNewMessage('');
+      const sentMessage = await chatService.sendMessage(selectedChatRoom.id, messageContent);
+      // Optimistically add message to local state immediately
+      setMessages(prev => [...prev, sentMessage]);
     } catch (error) {
       alert('Failed to send message. Please try again.');
+      setNewMessage(messageContent); // Restore message on error
     }
   };
 
@@ -577,6 +582,10 @@ Freestyle Vancouver Volunteer Opportunity\r
         selectedChatRoom.id,
         (newMsg) => {
           setMessages(prev => {
+            // Prevent duplicates - check if message already exists
+            if (prev.some(msg => msg.id === newMsg.id)) {
+              return prev;
+            }
             const updated = [...prev, newMsg];
             // Increment unread count if chat is closed and message is not from current user
             if (!chatOpen && newMsg.sender?.id !== currentVolunteer?.id) {
