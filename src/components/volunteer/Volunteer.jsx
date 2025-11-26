@@ -2051,7 +2051,7 @@ Freestyle Vancouver Volunteer Opportunity\r
         </div>
       </nav>
 
-      <div className="flex max-w-7xl mx-auto flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* Main Content - Calendar */}
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           {/* Calendar Header */}
@@ -2267,19 +2267,10 @@ Freestyle Vancouver Volunteer Opportunity\r
 
         {/* Sidebar */}
         <Sidebar />
-      </div>
-
-      {/* Chat Slide-out Panel */}
-      {chatOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-30 z-40"
-            onClick={() => setChatOpen(false)}
-          ></div>
-          
-          {/* Chat Panel */}
-          <div className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300">
+        
+        {/* Chat Panel - Always visible on desktop */}
+        {chatOpen && (
+          <div className="w-96 bg-white shadow-lg border-l border-gray-200 flex-shrink-0">
             <div className="h-full flex flex-col">
               {/* Chat Header */}
               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-blue-50">
@@ -2311,8 +2302,8 @@ Freestyle Vancouver Volunteer Opportunity\r
               </div>
             </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
 
       {/* Modals */}
       {showOpportunityForm && (
