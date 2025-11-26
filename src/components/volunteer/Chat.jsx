@@ -100,8 +100,10 @@ const Chat = ({
                   }`}
                 >
                   {/* Always show sender name */}
-                  <div className={`text-xs font-semibold mb-1 ${
-                    isOwnMessage ? 'text-blue-100' : 'opacity-75'
+                  <div className={`text-xs font-semibold mb-1 inline-block px-2 py-0.5 rounded border ${
+                    isOwnMessage 
+                      ? 'text-blue-100 border-amber-400' 
+                      : 'opacity-75 border-amber-500'
                   }`}>
                     {msg.sender?.first_name} {msg.sender?.last_name}
                   </div>
