@@ -1753,17 +1753,26 @@ Freestyle Vancouver Volunteer Opportunity\r
               <MobileCalendarView />
             ) : mobileView === "chat" ? (
               <div className="h-[calc(100vh-12rem)]">
-                <Chat
-                  chatRooms={chatRooms}
-                  selectedChatRoom={selectedChatRoom}
-                  setSelectedChatRoom={setSelectedChatRoom}
-                  messages={messages}
-                  newMessage={newMessage}
-                  setNewMessage={setNewMessage}
-                  handleSendMessage={handleSendMessage}
-                  handleDeleteMessage={handleDeleteMessage}
-                  currentVolunteer={currentVolunteer}
-                />
+                {currentVolunteer ? (
+                  <Chat
+                    chatRooms={chatRooms}
+                    selectedChatRoom={selectedChatRoom}
+                    setSelectedChatRoom={setSelectedChatRoom}
+                    messages={messages}
+                    newMessage={newMessage}
+                    setNewMessage={setNewMessage}
+                    handleSendMessage={handleSendMessage}
+                    handleDeleteMessage={handleDeleteMessage}
+                    currentVolunteer={currentVolunteer}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full p-8">
+                    <div className="text-center">
+                      <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-600">Loading chat...</p>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div>
