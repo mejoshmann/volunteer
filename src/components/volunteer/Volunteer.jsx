@@ -1919,7 +1919,7 @@ Freestyle Vancouver Volunteer Opportunity\r
               onClick={() => setSidebarOpen(false)}
             ></div>
             {/* Sidebar */}
-            <div className="fixed right-0 top-0 bottom-0 w-full bg-white shadow-xl z-50 transform transition-transform duration-300">
+            <div className="fixed left-0 top-0 bottom-0 w-full bg-white shadow-xl z-50 transform transition-transform duration-300">
               <div className="h-full flex flex-col">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                   <h2 className="text-lg font-bold">Menu</h2>
