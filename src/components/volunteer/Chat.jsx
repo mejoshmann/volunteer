@@ -44,9 +44,9 @@ const Chat = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white" style={{ minHeight: '0' }}>
       {/* Chat Room Selector */}
-      <div className="border-b p-4">
+      <div className="border-b p-4 flex-shrink-0">
         <select
           value={selectedChatRoom?.id || ''}
           onChange={(e) => {
@@ -90,7 +90,8 @@ const Chat = ({
                 className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group`}
               >
                 <div
-                  className={`max-w-[70%] rounded-lg px-4 py-2 relative ${
+                  style={{ maxWidth: '70%' }}
+                  className={`rounded-lg px-4 py-2 relative ${
                     isOwnMessage
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-900'
@@ -133,7 +134,7 @@ const Chat = ({
       </div>
 
       {/* Message Input */}
-      <div className="border-t p-4">
+      <div className="border-t p-4 flex-shrink-0">
         <div className="flex space-x-2">
           <input
             type="text"
