@@ -19,12 +19,7 @@ const Chat = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-select room if only one available and none selected
-  useEffect(() => {
-    if (chatRooms.length === 1 && !selectedChatRoom) {
-      setSelectedChatRoom(chatRooms[0]);
-    }
-  }, [chatRooms, selectedChatRoom, setSelectedChatRoom]);
+  // Removed auto-select to allow users to explicitly choose a chat room
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -56,12 +51,14 @@ const Chat = ({
           value={selectedChatRoom?.id || ''}
           onChange={(e) => {
             const room = chatRooms.find(r => r.id === e.target.value);
-            setSelectedChatRoom(room);
+            setSelectedChatRoom(room || null);
           }}
           className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
         >
-          {chatRooms.length === 0 && (
+          {chatRooms.length === 0 ? (
             <option value="">No chat rooms available</option>
+          ) : (
+            <option value="">Select a chat room...</option>
           )}
           {chatRooms.map(room => (
             <option key={room.id} value={room.id}>
