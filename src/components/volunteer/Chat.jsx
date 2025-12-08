@@ -44,7 +44,7 @@ const Chat = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white" style={{ minHeight: '0' }}>
+    <div className="h-full flex flex-col bg-white">
       {/* Chat Room Selector */}
       <div className="border-b p-4 flex-shrink-0">
         <select
@@ -83,7 +83,14 @@ const Chat = ({
           </div>
         ) : (
           messages.map((msg) => {
+            // Safety checks for iOS Safari
+            if (!msg || !msg.id) return null;
+            
             const isOwnMessage = msg.sender?.id === currentVolunteer?.id;
+            const senderFirstName = msg.sender?.first_name || 'Unknown';
+            const senderLastName = msg.sender?.last_name || '';
+            const messageContent = msg.content || '';
+            
             return (
               <div
                 key={msg.id}
@@ -103,10 +110,10 @@ const Chat = ({
                       ? 'text-blue-100 border-amber-400' 
                       : 'opacity-75 border-amber-500'
                   }`}>
-                    {msg.sender?.first_name} {msg.sender?.last_name}
+                    {senderFirstName} {senderLastName}
                   </div>
                   <div className="text-sm whitespace-pre-wrap break-words">
-                    {msg.content}
+                    {messageContent}
                   </div>
                   <div className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
                     {formatTime(msg.created_at)}

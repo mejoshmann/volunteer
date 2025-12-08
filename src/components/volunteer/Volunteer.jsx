@@ -1752,7 +1752,7 @@ Freestyle Vancouver Volunteer Opportunity\r
             mobileView === "calendar" ? (
               <MobileCalendarView />
             ) : mobileView === "chat" ? (
-              <div style={{ height: 'calc(100vh - 12rem)' }}>
+              <div className="h-screen pb-32">
                 {currentVolunteer ? (
                   <Chat
                     chatRooms={chatRooms}
