@@ -1747,12 +1747,12 @@ Freestyle Vancouver Volunteer Opportunity\r
         )}
 
         {/* Mobile Content */}
-        <div className="pb-16">
+        <div className={mobileView === "chat" ? "" : "pb-16"}>
           {currentView === "volunteer" ? (
             mobileView === "calendar" ? (
               <MobileCalendarView />
             ) : mobileView === "chat" ? (
-              <div className="h-full">
+              <div className="fixed top-[120px] bottom-0 left-0 right-0 overflow-hidden">
                 {currentVolunteer ? (
                   <Chat
                     chatRooms={chatRooms}
