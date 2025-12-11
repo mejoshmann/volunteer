@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { MessageSquare, Send, Users as UsersIcon, Trash2 } from 'lucide-react';
 
 const Chat = ({ 
@@ -10,7 +10,10 @@ const Chat = ({
   setNewMessage, 
   handleSendMessage,
   handleDeleteMessage,
-  currentVolunteer 
+  currentVolunteer,
+  hasMoreMessages,
+  loadingMoreMessages,
+  onLoadMore
 }) => {
   const messagesEndRef = useRef(null);
 
@@ -76,13 +79,28 @@ const Chat = ({
             <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
             <p>Select a chat room to start messaging</p>
           </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
-            <p>No messages yet. Start the conversation!</p>
-          </div>
         ) : (
-          messages.map((msg) => {
+          <>
+            {/* Load More Button */}
+            {hasMoreMessages && messages.length > 0 && (
+              <div className="text-center py-2">
+                <button
+                  onClick={onLoadMore}
+                  disabled={loadingMoreMessages}
+                  className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 disabled:opacity-50"
+                >
+                  {loadingMoreMessages ? 'Loading...' : 'Load Earlier Messages'}
+                </button>
+              </div>
+            )}
+            
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
+                <p>No messages yet. Start the conversation!</p>
+              </div>
+            ) : (
+              messages.map((msg) => {
             // Safety checks for iOS Safari
             if (!msg || !msg.id) return null;
             
@@ -136,6 +154,8 @@ const Chat = ({
               </div>
             );
           })
+            )}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -169,4 +189,4 @@ const Chat = ({
   );
 };
 
-export default Chat;
+export default memo(Chat);

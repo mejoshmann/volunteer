@@ -372,8 +372,8 @@ export const chatService = {
     return data?.map(item => ({ ...item.chat_rooms, user_role: item.role })) || []
   },
 
-  // Get messages for a chat room
-  async getChatMessages(chatRoomId, limit = 50) {
+  // Get messages for a chat room with pagination
+  async getChatMessages(chatRoomId, limit = 50, offset = 0) {
     const { data, error } = await supabase
       .from('messages')
       .select(`
@@ -388,10 +388,21 @@ export const chatService = {
       `)
       .eq('chat_room_id', chatRoomId)
       .order('created_at', { ascending: false })
-      .limit(limit)
+      .range(offset, offset + limit - 1)
 
     if (error) throw error
     return data?.reverse() || []
+  },
+
+  // Get total message count for a room
+  async getMessageCount(chatRoomId) {
+    const { count, error } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('chat_room_id', chatRoomId)
+
+    if (error) throw error
+    return count || 0
   },
 
   // Send a message
