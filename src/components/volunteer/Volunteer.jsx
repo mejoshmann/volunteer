@@ -279,6 +279,9 @@ const Volunteer = ({ user, onLogout }) => {
   
   // Team management state
   const [showTeamChatForm, setShowTeamChatForm] = useState(false);
+  
+  // Bulk delete state
+  const [selectedOpportunities, setSelectedOpportunities] = useState([]);
 
   // Track date range for loading opportunities
   const [dateRange, setDateRange] = useState(() => {
@@ -703,6 +706,47 @@ Freestyle Vancouver Volunteer Opportunity\r
       } catch (error) {
         alert('Failed to delete opportunity. Please try again.');
       }
+    }
+  };
+
+  // Bulk delete opportunities
+  const bulkDeleteOpportunities = async () => {
+    if (selectedOpportunities.length === 0) {
+      alert('Please select opportunities to delete');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedOpportunities.length} opportunit${selectedOpportunities.length === 1 ? 'y' : 'ies'}?`)) {
+      try {
+        // Delete all selected opportunities
+        await Promise.all(
+          selectedOpportunities.map(id => opportunityService.deleteOpportunity(id))
+        );
+        
+        // Reload opportunities
+        const opps = await opportunityService.getOpportunitiesWithSignups();
+        setOpportunities(opps);
+        setSelectedOpportunities([]);
+        alert(`Successfully deleted ${selectedOpportunities.length} opportunit${selectedOpportunities.length === 1 ? 'y' : 'ies'}`);
+      } catch (error) {
+        alert('Failed to delete some opportunities. Please try again.');
+      }
+    }
+  };
+
+  // Toggle opportunity selection
+  const toggleOpportunitySelection = (id) => {
+    setSelectedOpportunities(prev => 
+      prev.includes(id) ? prev.filter(oppId => oppId !== id) : [...prev, id]
+    );
+  };
+
+  // Select all opportunities in current view
+  const selectAllOpportunities = () => {
+    if (selectedOpportunities.length === opportunities.length) {
+      setSelectedOpportunities([]);
+    } else {
+      setSelectedOpportunities(opportunities.map(o => o.id));
     }
   };
 
@@ -1837,9 +1881,30 @@ Freestyle Vancouver Volunteer Opportunity\r
         <div className="flex-1 p-4 flex flex-col overflow-hidden">
           {/* Calendar Header */}
           <div className="flex justify-between items-center mb-3 flex-shrink-0">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-            </h2>
+            <div className="flex items-center space-x-3">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+              </h2>
+              {currentView === "admin" && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={selectAllOpportunities}
+                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+                  >
+                    {selectedOpportunities.length === opportunities.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  {selectedOpportunities.length > 0 && (
+                    <button
+                      onClick={bulkDeleteOpportunities}
+                      className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-1"
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete ({selectedOpportunities.length})</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex space-x-2">
               <button
                 onClick={() => {
@@ -1912,8 +1977,22 @@ Freestyle Vancouver Volunteer Opportunity\r
                               opportunity.type === "on-snow"
                                 ? "bg-blue-50 text-blue-900 border border-blue-200"
                                 : "bg-green-50 text-green-900 border border-green-200"
-                            } ${userIsSignedUp ? "ring-2 ring-offset-1 ring-green-500" : ""}`}
+                            } ${userIsSignedUp ? "ring-2 ring-offset-1 ring-green-500" : ""} ${
+                              currentView === "admin" && selectedOpportunities.includes(opportunity.id) ? "ring-2 ring-red-500" : ""
+                            }`}
                           >
+                            {currentView === "admin" && (
+                              <div className="flex items-center mb-1">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedOpportunities.includes(opportunity.id)}
+                                  onChange={() => toggleOpportunitySelection(opportunity.id)}
+                                  className="mr-1.5 h-3 w-3 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <label className="text-[10px] text-gray-600">Select</label>
+                              </div>
+                            )}
                             <div className="font-bold truncate">{opportunity.title}</div>
                             <div className="font-semibold">
                               {opportunity.time}{opportunity.end_time ? ` - ${opportunity.end_time}` : ''}
