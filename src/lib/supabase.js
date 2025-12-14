@@ -181,14 +181,14 @@ export const opportunityService = {
 
   // Get opportunities with signup information (date-filtered for performance)
   async getOpportunitiesWithSignups(startDate = null, endDate = null) {
-    // Default to current month ± 2 months if no dates provided
+    // Default to current month ± 6 months if no dates provided
     if (!startDate) {
       const today = new Date();
-      startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+      startDate = new Date(today.getFullYear(), today.getMonth() - 6, 1);
     }
     if (!endDate) {
       const today = new Date();
-      endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 7, 0);
     }
 
     const startDateStr = startDate instanceof Date ? startDate.toISOString().split('T')[0] : startDate;
@@ -527,6 +527,28 @@ export const chatService = {
       .delete()
       .eq('id', messageId)
       .eq('sender_id', volunteer.id) // Can only delete own messages
+
+    if (error) throw error
+  },
+
+  // Delete a chat room (admin only - cannot delete club_notifications)
+  async deleteChatRoom(chatRoomId) {
+    // First check if it's a club_notifications room
+    const { data: room } = await supabase
+      .from('chat_rooms')
+      .select('type')
+      .eq('id', chatRoomId)
+      .single()
+
+    if (room?.type === 'club_notifications') {
+      throw new Error('Cannot delete the Club Notifications room')
+    }
+
+    // Delete the chat room (cascade will delete members and messages)
+    const { error } = await supabase
+      .from('chat_rooms')
+      .delete()
+      .eq('id', chatRoomId)
 
     if (error) throw error
   }

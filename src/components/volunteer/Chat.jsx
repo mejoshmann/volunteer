@@ -10,10 +10,12 @@ const Chat = ({
   setNewMessage, 
   handleSendMessage,
   handleDeleteMessage,
+  handleDeleteChatRoom,
   currentVolunteer,
   hasMoreMessages,
   loadingMoreMessages,
-  onLoadMore
+  onLoadMore,
+  isAdmin
 }) => {
   const messagesEndRef = useRef(null);
 
@@ -50,26 +52,41 @@ const Chat = ({
     <div className="h-full flex flex-col bg-white">
       {/* Chat Room Selector */}
       <div className="border-b p-4 flex-shrink-0">
-        <select
-          value={selectedChatRoom?.id || ''}
-          onChange={(e) => {
-            const room = chatRooms.find(r => r.id === e.target.value);
-            setSelectedChatRoom(room || null);
-          }}
-          className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
-        >
-          {chatRooms.length === 0 ? (
-            <option value="">No chat rooms available</option>
-          ) : (
-            <option value="">Select a chat room...</option>
+        <div className="flex space-x-2">
+          <select
+            value={selectedChatRoom?.id || ''}
+            onChange={(e) => {
+              const room = chatRooms.find(r => r.id === e.target.value);
+              setSelectedChatRoom(room || null);
+            }}
+            className="flex-1 p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            {chatRooms.length === 0 ? (
+              <option value="">No chat rooms available</option>
+            ) : (
+              <option value="">Select a chat room...</option>
+            )}
+            {chatRooms.map(room => (
+              <option key={room.id} value={room.id}>
+                {room.name}
+                {room.type === 'club_notifications' && ' 📢'}
+              </option>
+            ))}
+          </select>
+          {isAdmin && selectedChatRoom && selectedChatRoom.type !== 'club_notifications' && handleDeleteChatRoom && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete "${selectedChatRoom.name}"? This will delete all messages in this room.`)) {
+                  handleDeleteChatRoom(selectedChatRoom.id);
+                }
+              }}
+              className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center"
+              title="Delete chat room"
+            >
+              <Trash2 size={16} />
+            </button>
           )}
-          {chatRooms.map(room => (
-            <option key={room.id} value={room.id}>
-              {room.name}
-              {room.type === 'club_notifications' && ' 📢'}
-            </option>
-          ))}
-        </select>
+        </div>
       </div>
 
       {/* Messages Area */}

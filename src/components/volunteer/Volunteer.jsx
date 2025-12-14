@@ -287,8 +287,8 @@ const Volunteer = ({ user, onLogout }) => {
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     return {
-      start: new Date(today.getFullYear(), today.getMonth() - 2, 1),
-      end: new Date(today.getFullYear(), today.getMonth() + 3, 0)
+      start: new Date(today.getFullYear(), today.getMonth() - 6, 1),
+      end: new Date(today.getFullYear(), today.getMonth() + 7, 0)
     };
   });
 
@@ -314,8 +314,8 @@ const Volunteer = ({ user, onLogout }) => {
     
     // Expand range if navigating outside current range
     if (newDate < rangeStart || newDate > rangeEnd) {
-      const newStart = new Date(newYear, newMonth - 2, 1);
-      const newEnd = new Date(newYear, newMonth + 3, 0);
+      const newStart = new Date(newYear, newMonth - 6, 1);
+      const newEnd = new Date(newYear, newMonth + 7, 0);
       setDateRange({ start: newStart, end: newEnd });
       loadOpportunitiesForRange(newStart, newEnd);
     }
@@ -604,6 +604,24 @@ Freestyle Vancouver Volunteer Opportunity\r
       alert('Failed to delete message. Please try again.');
     }
   }, []);
+
+  // Delete chat room (admin only)
+  const handleDeleteChatRoom = useCallback(async (chatRoomId) => {
+    try {
+      await chatService.deleteChatRoom(chatRoomId);
+      // Reload chat rooms
+      const rooms = await chatService.getUserChatRooms();
+      setChatRooms(rooms);
+      // Clear selected room if it was deleted
+      if (selectedChatRoom?.id === chatRoomId) {
+        setSelectedChatRoom(null);
+        setMessages([]);
+      }
+      alert('Chat room deleted successfully!');
+    } catch (error) {
+      alert(error.message || 'Failed to delete chat room. Please try again.');
+    }
+  }, [selectedChatRoom]);
 
   // Load messages when chat room changes
   useEffect(() => {
@@ -1559,10 +1577,12 @@ Freestyle Vancouver Volunteer Opportunity\r
                     setNewMessage={setNewMessage}
                     handleSendMessage={handleSendMessage}
                     handleDeleteMessage={handleDeleteMessage}
+                    handleDeleteChatRoom={handleDeleteChatRoom}
                     currentVolunteer={currentVolunteer}
                     hasMoreMessages={hasMoreMessages}
                     loadingMoreMessages={loadingMoreMessages}
                     onLoadMore={loadMoreMessages}
+                    isAdmin={currentView === "admin" && isAdminLoggedIn}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full p-8">
@@ -2163,10 +2183,12 @@ Freestyle Vancouver Volunteer Opportunity\r
                   setNewMessage={setNewMessage}
                   handleSendMessage={handleSendMessage}
                   handleDeleteMessage={handleDeleteMessage}
+                  handleDeleteChatRoom={handleDeleteChatRoom}
                   currentVolunteer={currentVolunteer}
                   hasMoreMessages={hasMoreMessages}
                   loadingMoreMessages={loadingMoreMessages}
                   onLoadMore={loadMoreMessages}
+                  isAdmin={currentView === "admin" && isAdminLoggedIn}
                 />
               </div>
             </div>
