@@ -976,21 +976,25 @@ Freestyle Vancouver Volunteer Opportunity\r
                     {day.date.getDate()}
                   </div>
                   <div className="space-y-0.5">
-                    {day.opportunities.slice(0, 3).map((opportunity) => (
+                    {day.opportunities.slice(0, 2).map((opportunity) => (
                       <div
                         key={opportunity.id}
-                        className={`text-[11px] p-1 rounded truncate ${
+                        className={`text-[10px] p-1 rounded ${
                           opportunity.type === "on-snow"
                             ? "bg-blue-100 text-blue-900"
                             : "bg-green-100 text-green-900"
                         }`}
                       >
-                        {opportunity.time}
+                        <div className="font-semibold truncate">{opportunity.title}</div>
+                        <div className="truncate">
+                          {opportunity.time}{opportunity.end_time ? ` - ${opportunity.end_time}` : ''}
+                        </div>
+                        <div className="truncate opacity-75">{opportunity.location}</div>
                       </div>
                     ))}
-                    {day.opportunities.length > 3 && (
+                    {day.opportunities.length > 2 && (
                       <div className="text-[11px] text-gray-500 text-center">
-                        +{day.opportunities.length - 3}
+                        +{day.opportunities.length - 2}
                       </div>
                     )}
                   </div>
@@ -1634,21 +1638,25 @@ Freestyle Vancouver Volunteer Opportunity\r
                           {day.date.getDate()}
                         </div>
                         <div className="space-y-0.5">
-                          {day.opportunities.slice(0, 3).map((opportunity) => (
+                          {day.opportunities.slice(0, 2).map((opportunity) => (
                             <div
                               key={opportunity.id}
-                              className={`text-xs p-1 rounded truncate ${
+                              className={`text-xs p-1 rounded ${
                                 opportunity.type === "on-snow"
                                   ? "bg-blue-100 text-blue-900"
                                   : "bg-green-100 text-green-900"
                               }`}
                             >
-                              {opportunity.time}
+                              <div className="font-semibold truncate">{opportunity.title}</div>
+                              <div className="truncate text-[11px]">
+                                {opportunity.time}{opportunity.end_time ? ` - ${opportunity.end_time}` : ''}
+                              </div>
+                              <div className="truncate opacity-75 text-[10px]">{opportunity.location}</div>
                             </div>
                           ))}
-                          {day.opportunities.length > 3 && (
+                          {day.opportunities.length > 2 && (
                             <div className="text-xs text-gray-500 text-center">
-                              +{day.opportunities.length - 3}
+                              +{day.opportunities.length - 2}
                             </div>
                           )}
                         </div>
@@ -1906,9 +1914,15 @@ Freestyle Vancouver Volunteer Opportunity\r
                                 : "bg-green-50 text-green-900 border border-green-200"
                             } ${userIsSignedUp ? "ring-2 ring-offset-1 ring-green-500" : ""}`}
                           >
-                            <div className="font-semibold">{opportunity.time}</div>
-                            <div className="truncate font-medium">{opportunity.title}</div>
-                            <div className="text-xs opacity-75">
+                            <div className="font-bold truncate">{opportunity.title}</div>
+                            <div className="font-semibold">
+                              {opportunity.time}{opportunity.end_time ? ` - ${opportunity.end_time}` : ''}
+                            </div>
+                            <div className="truncate opacity-75 text-[11px]">{opportunity.location}</div>
+                            {opportunity.description && (
+                              <div className="text-[11px] opacity-60 truncate mt-0.5">{opportunity.description}</div>
+                            )}
+                            <div className="text-xs opacity-75 mt-1">
                               {signedUpCount}/{opportunity.max_volunteers} signed up
                             </div>
                             {currentView === "admin" && (
