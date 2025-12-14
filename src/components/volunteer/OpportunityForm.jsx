@@ -206,6 +206,7 @@ const OpportunityForm = ({
               <option value="">Select type</option>
               <option value="on-snow">On Snow</option>
               <option value="off-snow">Off Snow</option>
+              <option value="other">On and Off Snow</option>
             </select>
           </div>
 
