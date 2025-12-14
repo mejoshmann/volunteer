@@ -12,6 +12,7 @@ const OpportunityForm = ({
     opportunity || {
       date: "",
       time: "",
+      end_time: "",
       title: "",
       description: "",
       location: "",
@@ -147,6 +148,18 @@ const OpportunityForm = ({
               value={formData.time}
               onChange={(e) =>
                 setFormData({ ...formData, time: e.target.value })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">End Time</label>
+            <input
+              type="time"
+              className="w-full p-2 border rounded-md"
+              value={formData.end_time}
+              onChange={(e) =>
+                setFormData({ ...formData, end_time: e.target.value })
               }
             />
           </div>
