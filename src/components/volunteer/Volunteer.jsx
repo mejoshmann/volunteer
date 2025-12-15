@@ -1970,17 +1970,28 @@ Freestyle Vancouver Volunteer Opportunity\r
             <div className="grid grid-cols-7 gap-px bg-gray-200 flex-1 overflow-auto">
               {calendarDays.map((day, index) => {
                 const isToday = day.date.toDateString() === new Date().toDateString();
+                
+                // Only show days from the current month
+                if (!day.isCurrentMonth) {
+                  return (
+                    <div
+                      key={index}
+                      className="bg-gray-50"
+                    >
+                      {/* Empty cell for days outside current month */}
+                    </div>
+                  );
+                }
+                
                 return (
                   <div
                     key={index}
                     className={`bg-white p-2 flex flex-col ${
-                      !day.isCurrentMonth ? "bg-gray-50" : ""
-                    } ${
                       isToday ? "ring-2 ring-blue-500 ring-inset" : ""
                     }`}
                   >
                     <div className={`text-sm font-semibold mb-1 flex-shrink-0 ${
-                      !day.isCurrentMonth ? "text-gray-400" : isToday ? "text-blue-600" : "text-gray-900"
+                      isToday ? "text-blue-600" : "text-gray-900"
                     }`}>
                       {day.date.getDate()}
                     </div>
