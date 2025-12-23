@@ -16,7 +16,7 @@ const ForgotPassword = ({ onBack }) => {
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (resetError) {
@@ -58,8 +58,8 @@ const ForgotPassword = ({ onBack }) => {
                 Check your email inbox for a link to reset your password. 
                 The link will expire in 60 minutes.
               </p>
-              <p className="text-sm mt-2">
-                Don't see the email? Check your spam folder.
+              <p className="text-sm mt-2 font-medium">
+                ⚠️ Check your spam/junk folder if you don't see it in your inbox.
               </p>
             </div>
             
