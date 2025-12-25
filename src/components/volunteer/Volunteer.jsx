@@ -1405,7 +1405,7 @@ Freestyle Vancouver Volunteer Opportunity\r
               </a>
               <a href="mailto:info@freestylevancouver.ski" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
                 <Mail size={14} className="mr-2" />
-                info@freestylevancouver.ca
+                info@freestylevancouver.ski
               </a>
             </div>
           </div>
