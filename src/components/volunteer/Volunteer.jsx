@@ -1339,7 +1339,7 @@ Freestyle Vancouver Volunteer Opportunity\r
               onClick={() => setSidebarOpen(false)}
             ></div>
             {/* Sidebar */}
-            <div className="fixed left-0 top-0 bottom-0 w-80 bg-white shadow-xl z-50 transform transition-transform duration-300">
+            <div className="fixed left-0 top-0 bottom-0 w-full bg-white shadow-xl z-50 transform transition-transform duration-300">
               <div className="h-full flex flex-col">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                   <h2 className="text-lg font-bold">Menu</h2>
@@ -1351,7 +1351,141 @@ Freestyle Vancouver Volunteer Opportunity\r
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                  <Sidebar />
+                  <div className="w-full bg-white">
+                    <div className="p-6 space-y-6">
+                      {/* Volunteer Profile Section */}
+                      {currentView === "volunteer" && currentVolunteer && (
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                          <div className="flex items-center mb-3">
+                            <div className="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                              <User size={24} className="text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                Welcome, {currentVolunteer.first_name}!
+                              </h3>
+                              <p className="text-sm text-gray-600">{currentVolunteer.training_mountain}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={onLogout}
+                            className="w-full mt-3 px-3 py-2 text-sm text-blue-700 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 font-medium"
+                          >
+                            Sign Out
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Rest of sidebar content - inline for mobile */}
+                      {currentView === "volunteer" && (() => {
+                        const mySignups = opportunities
+                          .filter((opp) => isSignedUp(opp))
+                          .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
+                        return mySignups.length > 0 && (
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">My Shifts</h3>
+                              <button
+                                onClick={downloadAllShiftsAsICS}
+                                className="flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                title="Download all shifts as calendar file"
+                              >
+                                <Download size={14} className="mr-1" />
+                                Download All
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              {mySignups.map((opportunity) => {
+                                const calLinks = generateCalendarLinks(opportunity);
+                                return (
+                                  <div key={opportunity.id} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <div className="flex items-start justify-between mb-1">
+                                      <h4 className="font-semibold text-sm text-gray-900">{opportunity.title}</h4>
+                                      <span className="px-2 py-0.5 text-xs rounded-full bg-green-600 text-white">
+                                        ✓ Signed Up
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-gray-600 space-y-1">
+                                      <div className="flex items-center">
+                                        <Calendar size={12} className="mr-1.5" />
+                                        {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
+                                          weekday: 'short', 
+                                          month: 'short', 
+                                          day: 'numeric' 
+                                        })}
+                                      </div>
+                                      <div>{opportunity.time} • {opportunity.location}</div>
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                      <div className="relative flex-1">
+                                        <button
+                                          onClick={() => setOpenCalendarDropdown(
+                                            openCalendarDropdown === opportunity.id ? null : opportunity.id
+                                          )}
+                                          className="w-full px-2 py-1.5 text-xs text-blue-700 bg-white rounded hover:bg-blue-50 transition-colors border border-blue-200 font-medium flex items-center justify-center"
+                                        >
+                                          <CalendarPlus size={12} className="mr-1" />
+                                          Add to Calendar
+                                          <ChevronDown size={12} className="ml-1" />
+                                        </button>
+                                        {openCalendarDropdown === opportunity.id && (
+                                          <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                            <a
+                                              href={calLinks.google}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="block px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100"
+                                              onClick={() => setOpenCalendarDropdown(null)}
+                                            >
+                                              📅 Google Calendar
+                                            </a>
+                                            <a
+                                              href={calLinks.apple}
+                                              download={`${opportunity.title}.ics`}
+                                              className="block px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100"
+                                              onClick={() => setOpenCalendarDropdown(null)}
+                                            >
+                                              🍎 Apple Calendar
+                                            </a>
+                                            <a
+                                              href={calLinks.outlook}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="block px-3 py-2 text-xs hover:bg-gray-50 rounded-b-lg"
+                                              onClick={() => setOpenCalendarDropdown(null)}
+                                            >
+                                              📧 Outlook Calendar
+                                            </a>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => removeSignup(opportunity.id)}
+                                        className="px-2 py-1.5 text-xs text-red-700 bg-white rounded hover:bg-red-50 transition-colors border border-red-200 font-medium"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Contact Section */}
+                      <div className="border-t pt-6">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Contact Us</h3>
+                        <div className="space-y-2 text-sm">
+                          <a href="mailto:volunteer.coordinator@freestylevancouver.ski" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+                            <Mail size={14} className="mr-2" />
+                            volunteer.coordinator@freestylevancouver.ski
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
