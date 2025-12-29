@@ -1797,13 +1797,6 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <span className="hidden sm:inline">Add Opportunity</span>
                   </button>
                   <button
-                    onClick={() => setShowTeamChatForm(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                  >
-                    <MessageSquare size={20} />
-                    <span className="hidden sm:inline">Create Team</span>
-                  </button>
-                  <button
                     onClick={() => setCurrentView("volunteer")}
                     className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   >
