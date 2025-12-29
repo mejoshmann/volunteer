@@ -8,7 +8,6 @@ import {
   Trash2,
   Users,
   Mountain,
-  Phone,
   Mail,
   User,
   Settings,
@@ -1085,13 +1084,9 @@ Freestyle Vancouver Volunteer Opportunity\r
           <div className="border-t pt-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Contact Us</h3>
             <div className="space-y-2 text-sm">
-              <a href="tel:778-320-9776" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
-                <Phone size={14} className="mr-2" />
-                (778) 320-9776
-              </a>
-              <a href="mailto:info@freestylevancouver.ski" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+              <a href="mailto:volunteer.coordinator@freestylevancouver.ski" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
                 <Mail size={14} className="mr-2" />
-                info@freestylevancouver.ski
+                volunteer.coordinator@freestylevancouver.ski
               </a>
             </div>
           </div>
@@ -1736,9 +1731,6 @@ Freestyle Vancouver Volunteer Opportunity\r
                                   </div>
                                   <div>
                                     <strong>Email:</strong> {volunteer.email}
-                                  </div>
-                                  <div>
-                                    <strong>Phone:</strong> {volunteer.mobile}
                                   </div>
                                   <div>
                                     <strong>Training Mountain:</strong>{" "}
