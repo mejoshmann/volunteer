@@ -990,13 +990,13 @@ Freestyle Vancouver Volunteer Opportunity\r
 
           {/* Upcoming Opportunities */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Upcoming Opportunities</h3>
-              <div className="flex gap-2">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Upcoming Opportunities</h3>
+              <div className="flex flex-col gap-2">
                 <select
                   value={mountainFilter}
                   onChange={(e) => setMountainFilter(e.target.value)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
                 >
                   <option value="all">All Mountains</option>
                   <option value="Cypress">Cypress</option>
@@ -1005,7 +1005,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                 <select
                   value={dayOfWeekFilter}
                   onChange={(e) => setDayOfWeekFilter(e.target.value)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
                 >
                   <option value="all">All Days</option>
                   <option value="0">Sunday</option>
@@ -1582,13 +1582,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                         
                         return (
                           <div>
-                            <div className="flex items-center justify-between mb-3">
-                              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Upcoming Opportunities</h3>
-                              <div className="flex gap-2">
+                            <div className="mb-3">
+                              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Upcoming Opportunities</h3>
+                              <div className="flex flex-col gap-2">
                                 <select
                                   value={mountainFilter}
                                   onChange={(e) => setMountainFilter(e.target.value)}
-                                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
                                 >
                                   <option value="all">All Mountains</option>
                                   <option value="Cypress">Cypress</option>
@@ -1597,7 +1597,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                                 <select
                                   value={dayOfWeekFilter}
                                   onChange={(e) => setDayOfWeekFilter(e.target.value)}
-                                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
                                 >
                                   <option value="all">All Days</option>
                                   <option value="0">Sunday</option>
