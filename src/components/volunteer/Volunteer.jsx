@@ -1136,20 +1136,12 @@ Freestyle Vancouver Volunteer Opportunity\r
             
             <div className="flex items-center space-x-3">
               {currentView === "volunteer" ? (
-                <>
-                  <button
-                    onClick={() => setSidebarOpen(true)}
-                    className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
-                  >
-                    <Menu size={20} />
-                  </button>
-                  <button
-                    onClick={() => setCurrentView("admin")}
-                    className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
-                  >
-                    <Settings size={20} />
-                  </button>
-                </>
+                <button
+                  onClick={() => setCurrentView("admin")}
+                  className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                >
+                  <Settings size={20} />
+                </button>
               ) : (
                 <>
                   <button
@@ -1178,34 +1170,6 @@ Freestyle Vancouver Volunteer Opportunity\r
             </div>
           </div>
         </nav>
-
-        {/* Mobile Navigation Tabs */}
-        {currentView === "volunteer" && (
-          <div className="bg-white border-b border-gray-200">
-            <div className="flex">
-              <button
-                onClick={() => setMobileView("calendar")}
-                className={`flex-1 py-3 text-center font-medium text-sm ${
-                  mobileView === "calendar"
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500"
-                }`}
-              >
-                Calendar
-              </button>
-              <button
-                onClick={() => setMobileView("day")}
-                className={`flex-1 py-3 text-center font-medium text-sm ${
-                  mobileView === "day"
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500"
-                }`}
-              >
-                My Day
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Mobile Content */}
         <div className="pb-16">
