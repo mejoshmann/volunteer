@@ -1376,7 +1376,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                         </div>
                       )}
 
-                      {/* Rest of sidebar content - inline for mobile */}
+                      {/* My Shifts Section */}
                       {currentView === "volunteer" && (() => {
                         const mySignups = opportunities
                           .filter((opp) => isSignedUp(opp))
@@ -1470,6 +1470,206 @@ Freestyle Vancouver Volunteer Opportunity\r
                                 );
                               })}
                             </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Today's Opportunities */}
+                      {(() => {
+                        const todayOpportunities = getOpportunitiesForDate(new Date());
+                        const getSignedUpCount = (opportunity) => {
+                          return opportunity.signups ? opportunity.signups.length : 0;
+                        };
+                        
+                        return (
+                          <div>
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Today's Opportunities</h3>
+                            {todayOpportunities.length > 0 ? (
+                              <div className="space-y-2">
+                                {todayOpportunities.map((opportunity) => {
+                                  const signedUpCount = getSignedUpCount(opportunity);
+                                  const userIsSignedUp = isSignedUp(opportunity);
+                                  const isFull = signedUpCount >= opportunity.max_volunteers;
+                                  
+                                  return (
+                                    <div key={opportunity.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <h4 className="font-semibold text-sm text-gray-900">{opportunity.title}</h4>
+                                        <span
+                                          className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                                            opportunity.type === "on-snow"
+                                              ? "bg-blue-100 text-blue-700"
+                                              : "bg-green-100 text-green-700"
+                                          }`}
+                                        >
+                                          {opportunity.type === "on-snow" ? "On Snow" : "Off Snow"}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                                        {opportunity.description}
+                                      </p>
+                                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                        <span>{opportunity.time} • {opportunity.location}</span>
+                                        <span className="font-medium">
+                                          {signedUpCount}/{opportunity.max_volunteers} spots
+                                        </span>
+                                      </div>
+                                      {currentView === "volunteer" && (
+                                        <>
+                                          {userIsSignedUp ? (
+                                            <div className="px-2 py-1.5 bg-green-50 text-green-700 text-xs rounded-lg text-center font-medium border border-green-200">
+                                              ✓ You're signed up!
+                                            </div>
+                                          ) : isFull ? (
+                                            <div className="px-2 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg text-center font-medium">
+                                              Full
+                                            </div>
+                                          ) : (
+                                            <button
+                                              onClick={() => quickSignUp(opportunity.id)}
+                                              className="w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                            >
+                                              Sign Up Now
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500 italic">No opportunities today</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Upcoming Opportunities */}
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        let upcomingOpportunities = opportunities
+                          .filter((opp) => {
+                            const oppDate = parseLocalDate(opp.date);
+                            oppDate.setHours(0, 0, 0, 0);
+                            return oppDate >= today;
+                          })
+                          .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
+                        
+                        // Apply day of week filter
+                        if (dayOfWeekFilter !== "all") {
+                          upcomingOpportunities = upcomingOpportunities.filter((opp) => {
+                            const oppDate = parseLocalDate(opp.date);
+                            const dayOfWeek = oppDate.getDay();
+                            return dayOfWeek === parseInt(dayOfWeekFilter);
+                          });
+                        }
+                        
+                        // Apply mountain filter
+                        if (mountainFilter !== "all") {
+                          upcomingOpportunities = upcomingOpportunities.filter((opp) => {
+                            return opp.location === mountainFilter;
+                          });
+                        }
+                        
+                        upcomingOpportunities = upcomingOpportunities.slice(0, 5);
+                        
+                        const getSignedUpCount = (opportunity) => {
+                          return opportunity.signups ? opportunity.signups.length : 0;
+                        };
+                        
+                        return (
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Upcoming Opportunities</h3>
+                              <div className="flex gap-2">
+                                <select
+                                  value={mountainFilter}
+                                  onChange={(e) => setMountainFilter(e.target.value)}
+                                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  <option value="all">All Mountains</option>
+                                  <option value="Cypress">Cypress</option>
+                                  <option value="Grouse">Grouse</option>
+                                </select>
+                                <select
+                                  value={dayOfWeekFilter}
+                                  onChange={(e) => setDayOfWeekFilter(e.target.value)}
+                                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  <option value="all">All Days</option>
+                                  <option value="0">Sunday</option>
+                                  <option value="1">Monday</option>
+                                  <option value="2">Tuesday</option>
+                                  <option value="3">Wednesday</option>
+                                  <option value="4">Thursday</option>
+                                  <option value="5">Friday</option>
+                                  <option value="6">Saturday</option>
+                                </select>
+                              </div>
+                            </div>
+                            {upcomingOpportunities.length > 0 ? (
+                              <div className="space-y-2">
+                                {upcomingOpportunities.map((opportunity) => {
+                                  const signedUpCount = getSignedUpCount(opportunity);
+                                  const userIsSignedUp = isSignedUp(opportunity);
+                                  const isFull = signedUpCount >= opportunity.max_volunteers;
+                                  
+                                  return (
+                                    <div key={opportunity.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <h4 className="font-semibold text-sm text-gray-900">{opportunity.title}</h4>
+                                        <span
+                                          className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                                            opportunity.type === "on-snow"
+                                              ? "bg-blue-100 text-blue-700"
+                                              : "bg-green-100 text-green-700"
+                                          }`}
+                                        >
+                                          {opportunity.type === "on-snow" ? "On Snow" : "Off Snow"}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                        <div className="flex items-center">
+                                          <Calendar size={12} className="mr-1" />
+                                          {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
+                                            month: 'short', 
+                                            day: 'numeric' 
+                                          })} • {opportunity.time}
+                                        </div>
+                                        <span className="font-medium">
+                                          {signedUpCount}/{opportunity.max_volunteers}
+                                        </span>
+                                      </div>
+                                      {currentView === "volunteer" && (
+                                        <>
+                                          {userIsSignedUp ? (
+                                            <div className="px-2 py-1.5 bg-green-50 text-green-700 text-xs rounded-lg text-center font-medium border border-green-200">
+                                              ✓ Signed up
+                                            </div>
+                                          ) : isFull ? (
+                                            <div className="px-2 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg text-center font-medium">
+                                              Full
+                                            </div>
+                                          ) : (
+                                            <button
+                                              onClick={() => quickSignUp(opportunity.id)}
+                                              className="w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                            >
+                                              Sign Up
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500 italic">No upcoming opportunities</p>
+                            )}
                           </div>
                         );
                       })()}
