@@ -400,7 +400,8 @@ Freestyle Vancouver Volunteer Opportunity\r
       setOpportunities(opps);
       alert('Opportunity updated successfully!');
     } catch (error) {
-      alert('Failed to update opportunity. Please try again.');
+      console.error('Update error:', error);
+      alert(`Failed to update opportunity: ${error.message || 'Please try again.'}`);
     }
   };
 
