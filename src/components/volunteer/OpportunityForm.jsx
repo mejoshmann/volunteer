@@ -29,7 +29,7 @@ const OpportunityForm = ({
     return text.trim().replace(/[<>]/g, '').slice(0, 500);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Sanitize inputs
     const sanitizedData = {
       ...formData,
@@ -71,9 +71,9 @@ const OpportunityForm = ({
         createRecurringOpportunities(sanitizedData, recurringEndDate);
       } else {
         // Create single opportunity
-        onSubmit(sanitizedData);
+        await onSubmit(sanitizedData);
+        // Don't call handleOpportunityCreated - it will be called by the form close in parent
         onClose();
-        handleOpportunityCreated();
       }
     }
   };

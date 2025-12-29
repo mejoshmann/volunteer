@@ -383,10 +383,15 @@ Freestyle Vancouver Volunteer Opportunity\r
 
   // Wrapper to handle UI updates after opportunity creation
   const handleOpportunityCreated = async () => {
-    setShowOpportunityForm(false);
-    // Reload opportunities
+    // Reload opportunities to show new one
     const opps = await opportunityService.getOpportunitiesWithSignups();
     setOpportunities(opps);
+  };
+
+  // Close opportunity form and reload
+  const closeOpportunityForm = async () => {
+    setShowOpportunityForm(false);
+    await handleOpportunityCreated();
     alert('Opportunity created successfully!');
   };
 
@@ -1769,7 +1774,7 @@ Freestyle Vancouver Volunteer Opportunity\r
         {/* Modals */}
         {showOpportunityForm && (
           <OpportunityForm
-            onClose={() => setShowOpportunityForm(false)}
+            onClose={closeOpportunityForm}
             onSubmit={addOpportunity}
             updateOpportunity={updateOpportunity}
             handleOpportunityCreated={handleOpportunityCreated}
@@ -2130,7 +2135,7 @@ Freestyle Vancouver Volunteer Opportunity\r
       {/* Modals */}
       {showOpportunityForm && (
         <OpportunityForm
-          onClose={() => setShowOpportunityForm(false)}
+          onClose={closeOpportunityForm}
           onSubmit={addOpportunity}
           updateOpportunity={updateOpportunity}
           handleOpportunityCreated={handleOpportunityCreated}
