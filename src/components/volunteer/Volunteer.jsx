@@ -100,6 +100,7 @@ const Volunteer = ({ user, onLogout }) => {
   const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day'
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dayOfWeekFilter, setDayOfWeekFilter] = useState("all"); // Filter for days of the week
+  const [mountainFilter, setMountainFilter] = useState("all"); // Filter for mountain location
   
   // Bulk delete state
   const [selectedOpportunities, setSelectedOpportunities] = useState([]);
@@ -788,6 +789,13 @@ Freestyle Vancouver Volunteer Opportunity\r
       });
     }
     
+    // Apply mountain filter if not "all"
+    if (mountainFilter !== "all") {
+      upcomingOpportunities = upcomingOpportunities.filter((opp) => {
+        return opp.location === mountainFilter;
+      });
+    }
+    
     // Limit to 5 after filtering
     upcomingOpportunities = upcomingOpportunities.slice(0, 5);
 
@@ -985,20 +993,31 @@ Freestyle Vancouver Volunteer Opportunity\r
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Upcoming Opportunities</h3>
-              <select
-                value={dayOfWeekFilter}
-                onChange={(e) => setDayOfWeekFilter(e.target.value)}
-                className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">All Days</option>
-                <option value="0">Sunday</option>
-                <option value="1">Monday</option>
-                <option value="2">Tuesday</option>
-                <option value="3">Wednesday</option>
-                <option value="4">Thursday</option>
-                <option value="5">Friday</option>
-                <option value="6">Saturday</option>
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={mountainFilter}
+                  onChange={(e) => setMountainFilter(e.target.value)}
+                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Mountains</option>
+                  <option value="Cypress">Cypress</option>
+                  <option value="Grouse">Grouse</option>
+                </select>
+                <select
+                  value={dayOfWeekFilter}
+                  onChange={(e) => setDayOfWeekFilter(e.target.value)}
+                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Days</option>
+                  <option value="0">Sunday</option>
+                  <option value="1">Monday</option>
+                  <option value="2">Tuesday</option>
+                  <option value="3">Wednesday</option>
+                  <option value="4">Thursday</option>
+                  <option value="5">Friday</option>
+                  <option value="6">Saturday</option>
+                </select>
+              </div>
             </div>
             {upcomingOpportunities.length > 0 ? (
               <div className="space-y-2">

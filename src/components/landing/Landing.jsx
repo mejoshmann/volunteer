@@ -61,8 +61,8 @@ const Landing = ({ onShowLogin, onShowRegister }) => {
         <footer className="text-center mt-6 pt-4 border-t border-gray-200 flex-shrink-0">
           <p className="text-[13px] sm:text-xs text-gray-600 m-0">
             Questions? Contact us at{" "}
-            <a href="mailto:info@freestylevancouver.ski" className="text-red-600 no-underline font-medium transition-colors hover:text-red-800 hover:underline">
-              info@freestylevancouver.ski
+            <a href="mailto:volunteer.coordinator@freestylevancouver.ski" className="text-red-600 no-underline font-medium transition-colors hover:text-red-800 hover:underline">
+              volunteer.co@freestylevancouver.ski
             </a>
           </p>
         </footer>
