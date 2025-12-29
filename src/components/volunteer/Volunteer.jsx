@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import logo from '../../assets/logo.png';
-import { supabase, volunteerService, opportunityService, signupService, chatService } from '../../lib/supabase';
-import { sanitizeChatMessage } from '../../lib/sanitize';
-import Chat from './Chat';
+import { supabase, volunteerService, opportunityService, signupService } from '../../lib/supabase';
 import OpportunityForm from './OpportunityForm';
 import {
   Calendar,
@@ -26,8 +24,6 @@ import {
   X as CloseIcon,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
-  Send,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -88,165 +84,6 @@ const AdminLogin = ({ loginData, setLoginData, handleAdminLogin, setCurrentView 
   </div>
 );
 
-// Team Chat Form Component - Moved outside to prevent re-renders
-const TeamChatForm = ({ onClose, onChatRoomsUpdate, onRoomCreated }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    selectedVolunteers: []
-  });
-  const [loading, setLoading] = useState(false);
-  const [allVolunteers, setAllVolunteers] = useState([]);
-
-  // Load all volunteers when form opens
-  useEffect(() => {
-    const loadVolunteers = async () => {
-      try {
-        const vols = await volunteerService.getAllVolunteers();
-        setAllVolunteers(vols);
-      } catch (error) {
-        console.error('Failed to load volunteers:', error);
-      }
-    };
-    loadVolunteers();
-  }, []);
-
-  const handleSubmit = async () => {
-    if (!formData.name || formData.selectedVolunteers.length === 0) {
-      alert('Please enter a team name and select at least one volunteer');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const newRoom = await chatService.createTeamChatRoom(
-        formData.name,
-        formData.description,
-        formData.selectedVolunteers
-      );
-      
-      // Reload chat rooms
-      const rooms = await chatService.getUserChatRooms();
-      onChatRoomsUpdate(rooms);
-      
-      // Find and select the newly created room
-      const createdRoom = rooms.find(r => r.id === newRoom.id);
-      if (createdRoom && onRoomCreated) {
-        onRoomCreated(createdRoom);
-      }
-      
-      alert(`Team chat "${formData.name}" created successfully!`);
-      onClose();
-    } catch (error) {
-      alert(`Failed to create team chat: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleVolunteer = (volunteerId) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedVolunteers: prev.selectedVolunteers.includes(volunteerId)
-        ? prev.selectedVolunteers.filter(id => id !== volunteerId)
-        : [...prev.selectedVolunteers, volunteerId]
-    }));
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg p-4 w-full max-w-2xl my-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-xl font-bold">Create Team Chat</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Team Name *</label>
-            <input
-              type="text"
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., Cypress Coaches, Weekend Warriors"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Description (optional)</label>
-            <textarea
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              rows="2"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Brief description of the team"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Select Team Members *</label>
-            <div className="border rounded-md p-3 max-h-64 overflow-y-auto">
-              {allVolunteers.length === 0 ? (
-                <p className="text-sm text-gray-500">Loading volunteers...</p>
-              ) : (
-                <div className="space-y-2">
-                  {allVolunteers.map(volunteer => (
-                    <label
-                      key={volunteer.id}
-                      className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.selectedVolunteers.includes(volunteer.id)}
-                        onChange={() => toggleVolunteer(volunteer.id)}
-                        className="mr-3 h-4 w-4 text-blue-600 rounded"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">
-                          {volunteer.first_name} {volunteer.last_name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {volunteer.training_mountain} • {volunteer.email}
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {formData.selectedVolunteers.length} volunteer(s) selected
-            </p>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-            >
-              {loading ? 'Creating...' : 'Create Team Chat'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Volunteer = ({ user, onLogout }) => {
   // State management
   const [currentView, setCurrentView] = useState("volunteer"); // 'volunteer' or 'admin'
@@ -260,25 +97,9 @@ const Volunteer = ({ user, onLogout }) => {
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [openCalendarDropdown, setOpenCalendarDropdown] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day' or 'chat'
+  const [mobileView, setMobileView] = useState("calendar"); // 'calendar' or 'day'
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dayOfWeekFilter, setDayOfWeekFilter] = useState("all"); // Filter for days of the week
-  
-  // Chat state
-  const [chatRooms, setChatRooms] = useState([]);
-  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
-  const MESSAGE_PAGE_SIZE = 50;
-  const [newMessage, setNewMessage] = useState("");
-  const [chatSubscription, setChatSubscription] = useState(null);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [lastReadMessageId, setLastReadMessageId] = useState(null);
-  
-  // Team management state
-  const [showTeamChatForm, setShowTeamChatForm] = useState(false);
   
   // Bulk delete state
   const [selectedOpportunities, setSelectedOpportunities] = useState([]);
@@ -352,21 +173,6 @@ const Volunteer = ({ user, onLogout }) => {
       // Load opportunities with date filtering (current month ± 2 months for performance)
       const opps = await opportunityService.getOpportunitiesWithSignups();
       setOpportunities(opps);
-      
-      // Load chat rooms
-      if (volunteer) {
-        try {
-          const rooms = await chatService.getUserChatRooms();
-          setChatRooms(rooms);
-          // Auto-select Club Notifications room if available
-          const clubNotifications = rooms.find(r => r.type === 'club_notifications');
-          if (clubNotifications) {
-            setSelectedChatRoom(clubNotifications);
-          }
-        } catch (chatError) {
-          console.error('Failed to load chat rooms:', chatError);
-        }
-      }
     } catch (error) {
       alert('Error loading data. Please try refreshing the page.');
     } finally {
@@ -543,120 +349,6 @@ Freestyle Vancouver Volunteer Opportunity\r
     link.click();
     document.body.removeChild(link);
   };
-
-  // Chat functions
-  const loadChatMessages = useCallback(async (roomId, append = false) => {
-    try {
-      const offset = append ? messages.length : 0;
-      const msgs = await chatService.getChatMessages(roomId, MESSAGE_PAGE_SIZE, offset);
-      
-      if (append) {
-        setMessages(prev => [...msgs, ...prev]);
-      } else {
-        setMessages(msgs);
-      }
-      
-      // Check if there are more messages
-      setHasMoreMessages(msgs.length === MESSAGE_PAGE_SIZE);
-      setLoadingMoreMessages(false);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-      setLoadingMoreMessages(false);
-    }
-  }, [messages.length, MESSAGE_PAGE_SIZE]);
-
-  const loadMoreMessages = useCallback(async () => {
-    if (!selectedChatRoom || loadingMoreMessages || !hasMoreMessages) return;
-    
-    setLoadingMoreMessages(true);
-    await loadChatMessages(selectedChatRoom.id, true);
-  }, [selectedChatRoom, loadingMoreMessages, hasMoreMessages, loadChatMessages]);
-
-  const handleSendMessage = useCallback(async () => {
-    if (!newMessage.trim() || !selectedChatRoom) return;
-
-    // Sanitize message content to prevent XSS
-    const messageContent = sanitizeChatMessage(newMessage.trim());
-    
-    if (!messageContent) {
-      alert('Message cannot be empty after sanitization');
-      return;
-    }
-    
-    setNewMessage(''); // Clear input immediately
-
-    try {
-      const sentMessage = await chatService.sendMessage(selectedChatRoom.id, messageContent);
-      // Optimistically add message to local state immediately
-      setMessages(prev => [...prev, sentMessage]);
-    } catch (error) {
-      alert('Failed to send message. Please try again.');
-      setNewMessage(messageContent); // Restore message on error
-    }
-  }, [newMessage, selectedChatRoom]);
-
-  const handleDeleteMessage = useCallback(async (messageId) => {
-    try {
-      await chatService.deleteMessage(messageId);
-      // Remove message from local state
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
-    } catch (error) {
-      alert('Failed to delete message. Please try again.');
-    }
-  }, []);
-
-  // Delete chat room (admin only)
-  const handleDeleteChatRoom = useCallback(async (chatRoomId) => {
-    try {
-      await chatService.deleteChatRoom(chatRoomId);
-      // Reload chat rooms
-      const rooms = await chatService.getUserChatRooms();
-      setChatRooms(rooms);
-      // Clear selected room if it was deleted
-      if (selectedChatRoom?.id === chatRoomId) {
-        setSelectedChatRoom(null);
-        setMessages([]);
-      }
-      alert('Chat room deleted successfully!');
-    } catch (error) {
-      alert(error.message || 'Failed to delete chat room. Please try again.');
-    }
-  }, [selectedChatRoom]);
-
-  // Load messages when chat room changes
-  useEffect(() => {
-    if (selectedChatRoom) {
-      loadChatMessages(selectedChatRoom.id);
-      
-      // Subscribe to real-time messages
-      const subscription = chatService.subscribeToMessages(
-        selectedChatRoom.id,
-        (newMsg) => {
-          setMessages(prev => {
-            // Prevent duplicates - check if message already exists
-            if (prev.some(msg => msg.id === newMsg.id)) {
-              return prev;
-            }
-            const updated = [...prev, newMsg];
-            // Increment unread count if chat is closed and message is not from current user
-            if (!chatOpen && newMsg.sender?.id !== currentVolunteer?.id) {
-              setUnreadCount(c => c + 1);
-            }
-            return updated;
-          });
-        }
-      );
-      
-      setChatSubscription(subscription);
-      
-      // Cleanup on unmount or room change
-      return () => {
-        if (subscription) {
-          subscription.unsubscribe();
-        }
-      };
-    }
-  }, [selectedChatRoom, chatOpen, currentVolunteer]);
 
   // SECURITY WARNING: Client-side admin authentication is insecure!
   // This should be replaced with proper server-side authentication
