@@ -158,9 +158,12 @@ export const opportunityService = {
 
   // Update opportunity
   async updateOpportunity(id, updates) {
+    // Remove fields that shouldn't be updated
+    const { created_by, signups, ...updateData } = updates;
+    
     const { data, error } = await supabase
       .from('opportunities')
-      .update(updates)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
