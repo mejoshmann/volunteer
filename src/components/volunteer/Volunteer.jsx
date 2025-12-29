@@ -1062,31 +1062,6 @@ Freestyle Vancouver Volunteer Opportunity\r
             )}
           </div>
 
-          {/* Team Chat Button */}
-          {currentView === "volunteer" && (
-            <div className="border-t pt-6">
-              <button
-                onClick={() => {
-                  setChatOpen(true);
-                  setUnreadCount(0);
-                }}
-                className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg transition-colors group"
-              >
-                <div className="flex items-center space-x-2">
-                  <MessageSquare size={18} className="text-blue-600" />
-                  <span className="font-semibold text-blue-900">Team Chat</span>
-                </div>
-                {unreadCount > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold animate-pulse">
-                      {unreadCount}
-                    </span>
-                  </div>
-                )}
-              </button>
-            </div>
-          )}
-
           {/* Contact Section */}
           <div className="border-t pt-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Contact Us</h3>
@@ -1184,13 +1159,6 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <Plus size={20} />
                   </button>
                   <button
-                    onClick={() => setShowTeamChatForm(true)}
-                    className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    title="Create Team Chat"
-                  >
-                    <MessageSquare size={20} />
-                  </button>
-                  <button
                     onClick={() => setCurrentView("volunteer")}
                     className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
                   >
@@ -1226,19 +1194,6 @@ Freestyle Vancouver Volunteer Opportunity\r
                 Calendar
               </button>
               <button
-                onClick={() => setMobileView("chat")}
-                className={`flex-1 py-3 text-center font-medium text-sm ${
-                  mobileView === "chat"
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500"
-                }`}
-              >
-                <div className="flex items-center justify-center space-x-1">
-                  <MessageSquare size={16} />
-                  <span>Chat</span>
-                </div>
-              </button>
-              <button
                 onClick={() => setMobileView("day")}
                 className={`flex-1 py-3 text-center font-medium text-sm ${
                   mobileView === "day"
@@ -1253,38 +1208,10 @@ Freestyle Vancouver Volunteer Opportunity\r
         )}
 
         {/* Mobile Content */}
-        <div className={mobileView === "chat" ? "" : "pb-16"}>
+        <div className="pb-16">
           {currentView === "volunteer" ? (
             mobileView === "calendar" ? (
               <MobileCalendarView />
-            ) : mobileView === "chat" ? (
-              <div className="fixed top-[104px] bottom-16 left-0 right-0 overflow-hidden">
-                {currentVolunteer ? (
-                  <Chat
-                    chatRooms={chatRooms}
-                    selectedChatRoom={selectedChatRoom}
-                    setSelectedChatRoom={setSelectedChatRoom}
-                    messages={messages}
-                    newMessage={newMessage}
-                    setNewMessage={setNewMessage}
-                    handleSendMessage={handleSendMessage}
-                    handleDeleteMessage={handleDeleteMessage}
-                    handleDeleteChatRoom={handleDeleteChatRoom}
-                    currentVolunteer={currentVolunteer}
-                    hasMoreMessages={hasMoreMessages}
-                    loadingMoreMessages={loadingMoreMessages}
-                    onLoadMore={loadMoreMessages}
-                    isAdmin={currentView === "admin" && isAdminLoggedIn}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full p-8">
-                    <div className="text-center">
-                      <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-600">Loading chat...</p>
-                    </div>
-                  </div>
-                )}
-              </div>
             ) : (
               <div>
                 <div className="p-4 bg-white border-b border-gray-200">
@@ -1857,46 +1784,7 @@ Freestyle Vancouver Volunteer Opportunity\r
         {/* Sidebar */}
         <Sidebar />
         
-        {/* Chat Panel - Always visible on desktop */}
-        {chatOpen && (
-          <div className="w-96 bg-white shadow-lg border-l border-gray-200 flex-shrink-0">
-            <div className="h-full flex flex-col">
-              {/* Chat Header */}
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-blue-50">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare size={20} className="text-blue-600" />
-                  <h2 className="text-lg font-bold text-gray-900">Team Chat</h2>
-                </div>
-                <button
-                  onClick={() => setChatOpen(false)}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-                >
-                  <CloseIcon size={20} />
-                </button>
-              </div>
-              
-              {/* Chat Component */}
-              <div className="flex-1 overflow-hidden">
-                <Chat
-                  chatRooms={chatRooms}
-                  selectedChatRoom={selectedChatRoom}
-                  setSelectedChatRoom={setSelectedChatRoom}
-                  messages={messages}
-                  newMessage={newMessage}
-                  setNewMessage={setNewMessage}
-                  handleSendMessage={handleSendMessage}
-                  handleDeleteMessage={handleDeleteMessage}
-                  handleDeleteChatRoom={handleDeleteChatRoom}
-                  currentVolunteer={currentVolunteer}
-                  hasMoreMessages={hasMoreMessages}
-                  loadingMoreMessages={loadingMoreMessages}
-                  onLoadMore={loadMoreMessages}
-                  isAdmin={currentView === "admin" && isAdminLoggedIn}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
 
       {/* Modals */}
@@ -1919,16 +1807,7 @@ Freestyle Vancouver Volunteer Opportunity\r
         />
       )}
 
-      {showTeamChatForm && (
-        <TeamChatForm
-          onClose={() => setShowTeamChatForm(false)}
-          onChatRoomsUpdate={(rooms) => setChatRooms(rooms)}
-          onRoomCreated={(room) => {
-            setSelectedChatRoom(room);
-            setChatOpen(true);
-          }}
-        />
-      )}
+
     </div>
   );
 };
