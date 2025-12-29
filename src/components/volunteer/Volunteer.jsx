@@ -467,6 +467,33 @@ Freestyle Vancouver Volunteer Opportunity\r
     return new Date(parts[0], parts[1] - 1, parts[2]);
   };
 
+  // Helper function to make URLs in text clickable
+  const renderTextWithLinks = (text) => {
+    if (!text) return null;
+    
+    // Regex to match URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   // Get opportunities for selected date
   const getOpportunitiesForDate = (date) => {
     // Format date in local timezone to avoid UTC conversion issues
@@ -869,6 +896,11 @@ Freestyle Vancouver Volunteer Opportunity\r
                           })}
                         </div>
                         <div>{opportunity.time} • {opportunity.location}</div>
+                        {opportunity.description && (
+                          <div className="text-xs text-gray-700 mt-1 leading-relaxed">
+                            {renderTextWithLinks(opportunity.description)}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 mt-2">
                         <div className="relative flex-1">
@@ -1416,6 +1448,11 @@ Freestyle Vancouver Volunteer Opportunity\r
                                         })}
                                       </div>
                                       <div>{opportunity.time} • {opportunity.location}</div>
+                                      {opportunity.description && (
+                                        <div className="text-xs text-gray-700 mt-1 leading-relaxed">
+                                          {renderTextWithLinks(opportunity.description)}
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="flex gap-2 mt-2">
                                       <div className="relative flex-1">
