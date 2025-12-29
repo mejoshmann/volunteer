@@ -72,8 +72,8 @@ const OpportunityForm = ({
       } else {
         // Create single opportunity
         await onSubmit(sanitizedData);
-        // Don't call handleOpportunityCreated - it will be called by the form close in parent
-        onClose();
+        // Call handleOpportunityCreated to close form and reload
+        await handleOpportunityCreated();
       }
     }
   };
