@@ -85,6 +85,7 @@ const Login = ({ onLogin, onShowRegister, onShowForgotPassword }) => {
               value={loginData.email}
               onChange={(e) => setLoginData({...loginData, email: e.target.value})}
               disabled={loading}
+              autoComplete="email"
               required
             />
           </div>
@@ -107,6 +108,7 @@ const Login = ({ onLogin, onShowRegister, onShowForgotPassword }) => {
               value={loginData.password}
               onChange={(e) => setLoginData({...loginData, password: e.target.value})}
               disabled={loading}
+              autoComplete="current-password"
               required
             />
           </div>
