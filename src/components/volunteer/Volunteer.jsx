@@ -1802,6 +1802,75 @@ Freestyle Vancouver Volunteer Opportunity\r
             handleOpportunityCreated={handleOpportunityCreated}
           />
         )}
+
+        {/* Info Modal */}
+        {showInfoModal && (
+          <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                  <Info size={24} className="mr-2 text-green-600" />
+                  Important Information
+                </h3>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="space-y-4 text-gray-700">
+                {/* Ski Pass Requirements */}
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                  <h4 className="font-bold text-lg text-gray-900 mb-3">Ski Pass Requirements</h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="font-semibold text-gray-900">CYPRESS</p>
+                      <p>• On-snow Volunteers require their own ski pass to access the mountain.</p>
+                      <p>• Off-snow parents do not require a ski pass.</p>
+                    </div>
+                    <div className="mt-2">
+                      <p className="font-semibold text-gray-900">GROUSE</p>
+                      <p>• On-snow AND Off-snow Volunteers require their own ski pass to access the mountain.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-lg text-gray-900 mb-2">On-Snow Tasks</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">Athlete support:</p>
+                      <p className="text-sm">Assist coaches with injured or sick athletes and bring them to patrol or their parents. This is a critical job as it allows coaches to stay with the rest of the group and continue training.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Mogul course maintenance:</p>
+                      <p className="text-sm">Must be a competent skier/boarder. Jobs include shoveling, fencing, digging, transporting equipment, slipping, and stepping.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-lg text-gray-900 mb-2">Off-Snow Tasks</h4>
+                  <ul className="space-y-2 text-sm">
+                    <li>
+                      <span className="font-semibold text-gray-900">Check-in parents:</span> Help athletes and parents find their respective groups.
+                    </li>
+                    <li>
+                      <span className="font-semibold text-gray-900">Marshalling parents:</span> Assist coaches with keeping athletes in their assigned groups and preventing crowds.
+                    </li>
+                    <li>
+                      <span className="font-semibold text-gray-900">Communication:</span> Share important updates and club messages with members.
+                    </li>
+                    <li>
+                      Assist coaches with injured or sick athletes and wait with them as necessary.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
