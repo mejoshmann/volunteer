@@ -2181,7 +2181,40 @@ Freestyle Vancouver Volunteer Opportunity\r
               </button>
             </div>
             <div className="space-y-4 text-gray-700">
-              <p>Information content will go here...</p>
+              <div>
+                <h4 className="font-bold text-lg text-gray-900 mb-2">On-Snow Tasks</h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-semibold text-gray-900">Athlete support (2):</p>
+                    <p className="text-sm">Assist coaches with injured or sick athletes and bring them to patrol or their parents. This is a critical job as it allows coaches to stay with the rest of the group and continue training.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Mogul course maintenance (4-6):</p>
+                    <p className="text-sm">Must be a competent skier/boarder. Jobs include shoveling, fencing, digging, transporting equipment, slipping, and stepping.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-lg text-gray-900 mb-2">Off-Snow Tasks</h4>
+                <ul className="space-y-2 text-sm">
+                  <li>
+                    <span className="font-semibold text-gray-900">Check-in parents (2):</span> Help athletes and parents find their respective groups.
+                  </li>
+                  <li>
+                    <span className="font-semibold text-gray-900">Marshalling parents (2):</span> Assist coaches with keeping athletes in their assigned groups and preventing crowds.
+                  </li>
+                  <li>
+                    <span className="font-semibold text-gray-900">Merchandise distribution:</span> Help sell and distribute team merchandise.
+                  </li>
+                  <li>
+                    <span className="font-semibold text-gray-900">Communication:</span> Share important updates and club messages with members.
+                  </li>
+                  <li>
+                    Assist coaches with injured or sick athletes and wait with them as necessary.
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
