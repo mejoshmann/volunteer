@@ -2181,15 +2181,31 @@ Freestyle Vancouver Volunteer Opportunity\r
               </button>
             </div>
             <div className="space-y-4 text-gray-700">
+              {/* Ski Pass Requirements */}
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <h4 className="font-bold text-lg text-gray-900 mb-3">Ski Pass Requirements</h4>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <p className="font-semibold text-gray-900">CYPRESS</p>
+                    <p>• On-snow Volunteers require their own ski pass to access the mountain.</p>
+                    <p>• Off-snow parents do not require a ski pass.</p>
+                  </div>
+                  <div className="mt-2">
+                    <p className="font-semibold text-gray-900">GROUSE</p>
+                    <p>• On-snow AND Off-snow Volunteers require their own ski pass to access the mountain.</p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <h4 className="font-bold text-lg text-gray-900 mb-2">On-Snow Tasks</h4>
                 <div className="space-y-3">
                   <div>
-                    <p className="font-semibold text-gray-900">Athlete support (2):</p>
+                    <p className="font-semibold text-gray-900">Athlete support:</p>
                     <p className="text-sm">Assist coaches with injured or sick athletes and bring them to patrol or their parents. This is a critical job as it allows coaches to stay with the rest of the group and continue training.</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Mogul course maintenance (4-6):</p>
+                    <p className="font-semibold text-gray-900">Mogul course maintenance:</p>
                     <p className="text-sm">Must be a competent skier/boarder. Jobs include shoveling, fencing, digging, transporting equipment, slipping, and stepping.</p>
                   </div>
                 </div>
@@ -2199,13 +2215,10 @@ Freestyle Vancouver Volunteer Opportunity\r
                 <h4 className="font-bold text-lg text-gray-900 mb-2">Off-Snow Tasks</h4>
                 <ul className="space-y-2 text-sm">
                   <li>
-                    <span className="font-semibold text-gray-900">Check-in parents (2):</span> Help athletes and parents find their respective groups.
+                    <span className="font-semibold text-gray-900">Check-in parents:</span> Help athletes and parents find their respective groups.
                   </li>
                   <li>
-                    <span className="font-semibold text-gray-900">Marshalling parents (2):</span> Assist coaches with keeping athletes in their assigned groups and preventing crowds.
-                  </li>
-                  <li>
-                    <span className="font-semibold text-gray-900">Merchandise distribution:</span> Help sell and distribute team merchandise.
+                    <span className="font-semibold text-gray-900">Marshalling parents:</span> Assist coaches with keeping athletes in their assigned groups and preventing crowds.
                   </li>
                   <li>
                     <span className="font-semibold text-gray-900">Communication:</span> Share important updates and club messages with members.
