@@ -23,6 +23,8 @@ import {
   X as CloseIcon,
   ChevronLeft,
   ChevronRight,
+  Info,
+  AlertTriangle,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -100,6 +102,7 @@ const Volunteer = ({ user, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dayOfWeekFilter, setDayOfWeekFilter] = useState("all"); // Filter for days of the week
   const [mountainFilter, setMountainFilter] = useState("all"); // Filter for mountain location
+  const [showInfoModal, setShowInfoModal] = useState(false); // Info modal state
   
   // Bulk delete state
   const [selectedOpportunities, setSelectedOpportunities] = useState([]);
@@ -858,6 +861,13 @@ Freestyle Vancouver Volunteer Opportunity\r
               >
                 Sign Out
               </button>
+              <button
+                onClick={() => setShowInfoModal(true)}
+                className="w-full mt-2 px-3 py-2 text-sm text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors border border-green-300 font-medium flex items-center justify-center"
+              >
+                <Info size={16} className="mr-2" />
+                Important Information
+              </button>
             </div>
           )}
 
@@ -1405,6 +1415,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                             className="w-full mt-3 px-3 py-2 text-sm text-blue-700 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 font-medium"
                           >
                             Sign Out
+                          </button>
+                          <button
+                            onClick={() => setShowInfoModal(true)}
+                            className="w-full mt-2 px-3 py-2 text-sm text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors border border-green-300 font-medium flex items-center justify-center"
+                          >
+                            <Info size={16} className="mr-2" />
+                            Important Information
                           </button>
                         </div>
                       )}
@@ -2145,6 +2162,29 @@ Freestyle Vancouver Volunteer Opportunity\r
           updateOpportunity={updateOpportunity}
           handleOpportunityCreated={handleOpportunityCreated}
         />
+      )}
+
+      {/* Info Modal */}
+      {showInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                <Info size={24} className="mr-2 text-green-600" />
+                Important Information
+              </h3>
+              <button
+                onClick={() => setShowInfoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4 text-gray-700">
+              <p>Information content will go here...</p>
+            </div>
+          </div>
+        </div>
       )}
 
 
