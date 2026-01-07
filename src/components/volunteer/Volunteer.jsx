@@ -103,6 +103,16 @@ const Volunteer = ({ user, onLogout }) => {
   const [dayOfWeekFilter, setDayOfWeekFilter] = useState("all"); // Filter for days of the week
   const [mountainFilter, setMountainFilter] = useState("all"); // Filter for mountain location
   const [showInfoModal, setShowInfoModal] = useState(false); // Info modal state
+  const [showEditInfoModal, setShowEditInfoModal] = useState(false); // Edit info modal state
+  const [infoModalContent, setInfoModalContent] = useState(() => {
+    // Load from localStorage or use default
+    const saved = localStorage.getItem('infoModalContent');
+    return saved ? JSON.parse(saved) : {
+      skiPassInfo: "**CYPRESS**\n• On-snow Volunteers require their own ski pass to access the mountain.\n• Off-snow parents do not require a ski pass.\n\n**GROUSE**\n• On-snow AND Off-snow Volunteers require their own ski pass to access the mountain.",
+      onSnowTasks: "**Athlete support (2):**\nAssist coaches with injured or sick athletes and bring them to patrol or their parents. This is a critical job as it allows coaches to stay with the rest of the group and continue training.\n\n**Mogul course maintenance (4-6):**\nMust be a competent skier/boarder. Jobs include shoveling, fencing, digging, transporting equipment, slipping, and stepping.",
+      offSnowTasks: "**Check-in parents (2):** Help athletes and parents find their respective groups.\n\n**Marshalling parents (2):** Assist coaches with keeping athletes in their assigned groups and preventing crowds.\n\n**Merchandise distribution:** Help sell and distribute team merchandise.\n\n**Communication:** Share important updates and club messages with members.\n\nAssist coaches with injured or sick athletes and wait with them as necessary."
+    };
+  });
   
   // Bulk delete state
   const [selectedOpportunities, setSelectedOpportunities] = useState([]);
@@ -391,6 +401,13 @@ Freestyle Vancouver Volunteer Opportunity\r
     const opps = await opportunityService.getOpportunitiesWithSignups();
     setOpportunities(opps);
     alert('Opportunity created successfully!');
+  };
+
+  // Save info modal content
+  const saveInfoModalContent = () => {
+    localStorage.setItem('infoModalContent', JSON.stringify(infoModalContent));
+    setShowEditInfoModal(false);
+    alert('Information updated successfully!');
   };
 
   // Update opportunity
@@ -1921,6 +1938,13 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <span className="hidden sm:inline">Add Opportunity</span>
                   </button>
                   <button
+                    onClick={() => setShowEditInfoModal(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    <Edit size={20} />
+                    <span className="hidden sm:inline">Edit Info</span>
+                  </button>
+                  <button
                     onClick={() => setCurrentView("volunteer")}
                     className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   >
@@ -2296,6 +2320,78 @@ Freestyle Vancouver Volunteer Opportunity\r
                     Assist coaches with injured or sick athletes and wait with them as necessary.
                   </li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Info Modal (Admin Only) */}
+      {showEditInfoModal && (
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                <Edit size={24} className="mr-2 text-green-600" />
+                Edit Important Information
+              </h3>
+              <button
+                onClick={() => setShowEditInfoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Ski Pass Requirements</label>
+                <textarea
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                  rows="6"
+                  value={infoModalContent.skiPassInfo}
+                  onChange={(e) => setInfoModalContent({...infoModalContent, skiPassInfo: e.target.value})}
+                  placeholder="Enter ski pass requirements..."
+                />
+                <p className="text-xs text-gray-500 mt-1">Use **text** for bold. Use \n for new lines.</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">On-Snow Tasks</label>
+                <textarea
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                  rows="6"
+                  value={infoModalContent.onSnowTasks}
+                  onChange={(e) => setInfoModalContent({...infoModalContent, onSnowTasks: e.target.value})}
+                  placeholder="Enter on-snow tasks..."
+                />
+                <p className="text-xs text-gray-500 mt-1">Use **text** for bold. Use \n for new lines.</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Off-Snow Tasks</label>
+                <textarea
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                  rows="6"
+                  value={infoModalContent.offSnowTasks}
+                  onChange={(e) => setInfoModalContent({...infoModalContent, offSnowTasks: e.target.value})}
+                  placeholder="Enter off-snow tasks..."
+                />
+                <p className="text-xs text-gray-500 mt-1">Use **text** for bold. Use \n for new lines.</p>
+              </div>
+              
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <button
+                  onClick={() => setShowEditInfoModal(false)}
+                  className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveInfoModalContent}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
           </div>
