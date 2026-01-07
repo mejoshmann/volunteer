@@ -40,7 +40,8 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
     mobile: '',
     password: '',
     confirmPassword: '',
-    childrenNames: '',
+    childrenFirstName: '',
+    childrenLastName: '',
     trainingMountain: '',
     strengths: [],
     skiingAbility: '',
@@ -62,13 +63,15 @@ const Registration = ({ onRegister = () => {}, onShowLogin = () => {} }) => {
     lastName: sanitizeInput(formData.lastName),
     email: formData.email.trim().toLowerCase(),
     mobile: sanitizeInput(formData.mobile),
-    childrenNames: sanitizeInput(formData.childrenNames),
+    childrenFirstName: sanitizeInput(formData.childrenFirstName),
+    childrenLastName: sanitizeInput(formData.childrenLastName),
     preferredOpportunities: sanitizeInput(formData.preferredOpportunities)
   };
   
   // Validation
   if (!sanitizedData.firstName || !sanitizedData.lastName || !sanitizedData.email || !sanitizedData.mobile || 
-      !sanitizedData.password || !sanitizedData.trainingMountain || !sanitizedData.skiingAbility || 
+      !sanitizedData.password || !sanitizedData.childrenFirstName || !sanitizedData.childrenLastName ||
+      !sanitizedData.trainingMountain || !sanitizedData.skiingAbility || 
       !sanitizedData.preferredOpportunities) {
     setError('Please fill in all required fields');
     setLoading(false);
@@ -177,7 +180,7 @@ Note: If you don't receive an email within 5 minutes, please contact support or 
         last_name: sanitizedData.lastName,
         email: sanitizedData.email,
         mobile: sanitizedData.mobile,
-        children_names: sanitizedData.childrenNames || null,
+        children_names: `${sanitizedData.childrenFirstName} ${sanitizedData.childrenLastName}`,
         training_mountain: sanitizedData.trainingMountain,
         strengths: sanitizedData.strengths,
         skiing_ability: sanitizedData.skiingAbility,
@@ -353,16 +356,29 @@ Technical details: ${insertError.message}`);
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Children's Names (optional)</label>
-            <input
-              type="text"
-              placeholder="Names of your children (if applicable)"
-              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={formData.childrenNames}
-              onChange={(e) => setFormData({...formData, childrenNames: e.target.value})}
-              disabled={loading}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Child's First Name *</label>
+              <input
+                type="text"
+                placeholder="Davey"
+                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={formData.childrenFirstName}
+                onChange={(e) => setFormData({...formData, childrenFirstName: e.target.value})}
+                disabled={loading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Child's Last Name *</label>
+              <input
+                type="text"
+                placeholder="Jones"
+                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={formData.childrenLastName}
+                onChange={(e) => setFormData({...formData, childrenLastName: e.target.value})}
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <div>
