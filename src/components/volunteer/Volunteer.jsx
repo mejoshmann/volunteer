@@ -2204,8 +2204,8 @@ Freestyle Vancouver Volunteer Opportunity\r
                                     {volunteer.training_mountain}
                                   </div>
                                   <div>
-                                    <strong>Signed Up:</strong>{" "}
-                                    {new Date(signup.signed_up_at).toLocaleDateString()}
+                                    <strong>Phone:</strong>{" "}
+                                    {volunteer.mobile || 'N/A'}
                                   </div>
                                 </div>
                               </div>
