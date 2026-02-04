@@ -25,6 +25,8 @@ import {
   ChevronRight,
   Info,
   AlertTriangle,
+  RefreshCw,
+  Phone,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -104,6 +106,9 @@ const Volunteer = ({ user, onLogout }) => {
   const [mountainFilter, setMountainFilter] = useState("all"); // Filter for mountain location
   const [showInfoModal, setShowInfoModal] = useState(false); // Info modal state
   const [showEditInfoModal, setShowEditInfoModal] = useState(false); // Edit info modal state
+  const [showVolunteerList, setShowVolunteerList] = useState(false); // Volunteer list modal state
+  const [allVolunteers, setAllVolunteers] = useState([]);
+  const [loadingVolunteers, setLoadingVolunteers] = useState(false);
   const [infoModalContent, setInfoModalContent] = useState(() => {
     // Load from localStorage or use default
     const saved = localStorage.getItem('infoModalContent');
@@ -190,6 +195,21 @@ const Volunteer = ({ user, onLogout }) => {
       alert('Error loading data. Please try refreshing the page.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllVolunteers = async () => {
+    try {
+      setLoadingVolunteers(true);
+      const data = await volunteerService.getAllVolunteers();
+      console.log('Fetched volunteers:', data);
+      setAllVolunteers(data || []);
+      setShowVolunteerList(true);
+    } catch (error) {
+      console.error('Error fetching volunteers:', error);
+      alert("Failed to fetch volunteers: " + (error.message || "Unknown error"));
+    } finally {
+      setLoadingVolunteers(false);
     }
   };
 
@@ -874,34 +894,94 @@ Freestyle Vancouver Volunteer Opportunity\r
     };
 
     return (
-      <div className="w-80 bg-white shadow-sm border-l h-[calc(100vh-4rem)] overflow-y-auto">
-        <div className="p-6 space-y-6">
+      <div className="w-80 bg-white shadow-sm border-r h-screen overflow-y-auto flex flex-col">
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-xl font-bold text-gray-900 text-center">
+            Volunteer Portal
+          </h1>
+        </div>
+        
+        <div className="p-6 space-y-6 flex-1">
+          {/* View Toggle / Admin Controls */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Navigation</h3>
+            {currentView === "volunteer" ? (
+              <button
+                onClick={() => setCurrentView("admin")}
+                className="w-full flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-gray-200 font-medium"
+              >
+                <Settings size={20} className="text-gray-400" />
+                <span>Switch to Admin</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setCurrentView("volunteer")}
+                className="w-full flex items-center space-x-3 px-4 py-2.5 text-blue-600 bg-blue-50 rounded-xl transition-all border border-blue-100 font-medium"
+              >
+                <Users size={20} />
+                <span>Volunteer Portal</span>
+              </button>
+            )}
+          </div>
+
           {/* Volunteer Profile Section */}
-          {currentView === "volunteer" && currentVolunteer && (
+          {currentVolunteer && (
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
               <div className="flex items-center mb-3">
-                <div className="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                <div className="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center mr-3 shadow-sm">
                   <User size={24} className="text-white" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Welcome, {currentVolunteer.first_name}!
+                <div className="overflow-hidden">
+                  <h3 className="text-sm font-bold text-gray-900 truncate">
+                    {currentVolunteer.first_name} {currentVolunteer.last_name}
                   </h3>
-                  <p className="text-sm text-gray-600">{currentVolunteer.training_mountain}</p>
+                  <p className="text-xs text-blue-600 font-medium">{currentVolunteer.training_mountain}</p>
                 </div>
               </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowInfoModal(true)}
+                  className="w-full px-3 py-2 text-xs text-green-700 bg-white rounded-lg hover:bg-green-50 transition-colors border border-green-200 font-medium flex items-center justify-center"
+                >
+                  <Info size={14} className="mr-2" />
+                  Important Info
+                </button>
+                <button
+                  onClick={onLogout}
+                  className="w-full px-3 py-2 text-xs text-red-600 bg-white rounded-lg hover:bg-red-50 transition-colors border border-red-100 font-medium flex items-center justify-center"
+                >
+                  <LogOut size={14} className="mr-2" />
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Admin Panel Quick Actions */}
+          {currentView === "admin" && (
+            <div className="space-y-3 pt-2">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin Tools</h3>
               <button
-                onClick={onLogout}
-                className="w-full mt-3 px-3 py-2 text-sm text-blue-700 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 font-medium"
+                onClick={() => setShowOpportunityForm(true)}
+                className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm flex items-center font-medium"
               >
-                Sign Out
+                <Plus size={20} className="mr-3" />
+                Add Opportunity
               </button>
               <button
-                onClick={() => setShowInfoModal(true)}
-                className="w-full mt-2 px-3 py-2 text-sm text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors border border-green-300 font-medium flex items-center justify-center"
+                onClick={() => setShowEditInfoModal(true)}
+                className="w-full px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-sm flex items-center font-medium"
               >
-                <Info size={16} className="mr-2" />
-                Important Information
+                <Edit size={20} className="mr-3" />
+                Edit Info
+              </button>
+              <button
+                onClick={fetchAllVolunteers}
+                disabled={loadingVolunteers}
+                className="w-full px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all shadow-sm flex items-center font-medium disabled:opacity-50"
+              >
+                <Users size={20} className="mr-3" />
+                {loadingVolunteers ? "Loading..." : "Volunteers List"}
               </button>
             </div>
           )}
@@ -909,30 +989,26 @@ Freestyle Vancouver Volunteer Opportunity\r
           {/* My Upcoming Shifts */}
           {currentView === "volunteer" && mySignups.length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">My Shifts</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">My Shifts</h3>
                 <button
                   onClick={downloadAllShiftsAsICS}
-                  className="flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  title="Download all shifts as calendar file"
+                  className="text-[10px] text-blue-600 hover:text-blue-800 font-bold uppercase tracking-tight flex items-center bg-blue-50 px-2 py-1 rounded-md"
                 >
-                  <Download size={14} className="mr-1" />
-                  Download All
+                  <Download size={12} className="mr-1" />
+                  Export All
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {mySignups.map((opportunity) => {
                   const calLinks = generateCalendarLinks(opportunity);
                   return (
-                    <div key={opportunity.id} className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <div className="flex items-start justify-between mb-1">
-                        <h4 className="font-semibold text-sm text-gray-900">{opportunity.title}</h4>
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-green-600 text-white">
-                          ✓ Signed Up
-                        </span>
+                    <div key={opportunity.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-bold text-sm text-gray-900 leading-tight">{opportunity.title}</h4>
                       </div>
-                      <div className="text-xs text-gray-600 space-y-1">
-                        <div className="flex items-center">
+                      <div className="text-[11px] text-gray-600 space-y-1.5">
+                        <div className="flex items-center text-blue-600 font-medium">
                           <Calendar size={12} className="mr-1.5" />
                           {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                             weekday: 'short', 
@@ -940,59 +1016,56 @@ Freestyle Vancouver Volunteer Opportunity\r
                             day: 'numeric' 
                           })}
                         </div>
-                        <div>{opportunity.time} • {opportunity.location}</div>
-                        {opportunity.description && (
-                          <div className="text-xs text-gray-700 mt-1 leading-relaxed">
-                            {renderTextWithLinks(opportunity.description)}
-                          </div>
-                        )}
+                        <div className="flex items-center">
+                          <Mountain size={12} className="mr-1.5 opacity-50" />
+                          {opportunity.time} • {opportunity.location}
+                        </div>
                       </div>
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex gap-2 mt-4">
                         <div className="relative flex-1">
                           <button
                             onClick={() => setOpenCalendarDropdown(
                               openCalendarDropdown === opportunity.id ? null : opportunity.id
                             )}
-                            className="w-full px-2 py-1.5 text-xs text-blue-700 bg-white rounded hover:bg-blue-50 transition-colors border border-blue-200 font-medium flex items-center justify-center"
+                            className="w-full px-2 py-1.5 text-[10px] text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors font-bold flex items-center justify-center uppercase tracking-tight"
                           >
                             <CalendarPlus size={12} className="mr-1" />
-                            Add to Calendar
-                            <ChevronDown size={12} className="ml-1" />
+                            Add to Cal
                           </button>
                           {openCalendarDropdown === opportunity.id && (
-                            <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                            <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden">
                               <a
                                 href={calLinks.google}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="block px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100"
+                                className="block px-3 py-2 text-[10px] font-medium hover:bg-gray-50 border-b border-gray-50"
                                 onClick={() => setOpenCalendarDropdown(null)}
                               >
-                                📅 Google Calendar
+                                Google
                               </a>
                               <a
                                 href={calLinks.apple}
                                 download={`${opportunity.title}.ics`}
-                                className="block px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100"
+                                className="block px-3 py-2 text-[10px] font-medium hover:bg-gray-50 border-b border-gray-50"
                                 onClick={() => setOpenCalendarDropdown(null)}
                               >
-                                🍎 Apple Calendar
+                                Apple / iCal
                               </a>
                               <a
                                 href={calLinks.outlook}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="block px-3 py-2 text-xs hover:bg-gray-50 rounded-b-lg"
+                                className="block px-3 py-2 text-[10px] font-medium hover:bg-gray-50"
                                 onClick={() => setOpenCalendarDropdown(null)}
                               >
-                                📧 Outlook Calendar
+                                Outlook
                               </a>
                             </div>
                           )}
                         </div>
                         <button
                           onClick={() => removeSignup(opportunity.id)}
-                          className="px-2 py-1.5 text-xs text-red-700 bg-white rounded hover:bg-red-50 transition-colors border border-red-200 font-medium"
+                          className="px-3 py-1.5 text-[10px] text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors font-bold uppercase tracking-tight"
                         >
                           Remove
                         </button>
@@ -1006,168 +1079,60 @@ Freestyle Vancouver Volunteer Opportunity\r
 
           {/* Today's Opportunities */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Today's Opportunities</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Today's Shifts</h3>
             {todayOpportunities.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {todayOpportunities.map((opportunity) => {
                   const signedUpCount = getSignedUpCount(opportunity);
                   const userIsSignedUp = isSignedUp(opportunity);
                   const isFull = signedUpCount >= opportunity.max_volunteers;
                   
                   return (
-                    <div key={opportunity.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
+                    <div key={opportunity.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                       <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-semibold text-sm text-gray-900">{opportunity.title}</h4>
-                        <span
-                          className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                            opportunity.type === "on-snow"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {opportunity.type === "on-snow" ? "On Snow" : "Off Snow"}
-                        </span>
+                        <h4 className="font-bold text-sm text-gray-900 leading-tight">{opportunity.title}</h4>
                       </div>
-                      <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                        {opportunity.description}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                        <span>{opportunity.time} • {opportunity.location}</span>
-                        <span className="font-medium">
-                          {signedUpCount}/{opportunity.max_volunteers} spots
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                          {signedUpCount} / {opportunity.max_volunteers} filled
                         </span>
+                        {userIsSignedUp ? (
+                          <span className="px-2 py-1 text-[9px] font-bold bg-green-100 text-green-700 rounded-md uppercase tracking-wider">
+                            Enrolled
+                          </span>
+                        ) : isFull ? (
+                          <span className="px-2 py-1 text-[9px] font-bold bg-gray-100 text-gray-500 rounded-md uppercase tracking-wider">
+                            Full
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-[9px] font-bold bg-blue-100 text-blue-700 rounded-md uppercase tracking-wider">
+                            Open
+                          </span>
+                        )}
                       </div>
-                      {currentView === "volunteer" && (
-                        <>
-                          {userIsSignedUp ? (
-                            <div className="px-2 py-1.5 bg-green-50 text-green-700 text-xs rounded-lg text-center font-medium border border-green-200">
-                              ✓ You're signed up!
-                            </div>
-                          ) : isFull ? (
-                            <div className="px-2 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg text-center font-medium">
-                              Full
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => quickSignUp(opportunity.id)}
-                              className="w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                            >
-                              Sign Up Now
-                            </button>
-                          )}
-                        </>
-                      )}
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 italic">No opportunities today</p>
+              <div className="bg-gray-50 rounded-xl p-6 border border-dashed border-gray-200 text-center">
+                <Calendar size={24} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-xs text-gray-500 font-medium">No opportunities today</p>
+              </div>
             )}
           </div>
-
-          {/* Upcoming Opportunities */}
-          <div>
-            <div className="mb-3">
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Upcoming Opportunities</h3>
-              <div className="flex flex-col gap-2">
-                <select
-                  value={mountainFilter}
-                  onChange={(e) => setMountainFilter(e.target.value)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
-                >
-                  <option value="all">All Mountains</option>
-                  <option value="Cypress">Cypress</option>
-                  <option value="Grouse">Grouse</option>
-                </select>
-                <select
-                  value={dayOfWeekFilter}
-                  onChange={(e) => setDayOfWeekFilter(e.target.value)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
-                >
-                  <option value="all">All Days</option>
-                  <option value="0">Sunday</option>
-                  <option value="1">Monday</option>
-                  <option value="2">Tuesday</option>
-                  <option value="3">Wednesday</option>
-                  <option value="4">Thursday</option>
-                  <option value="5">Friday</option>
-                  <option value="6">Saturday</option>
-                </select>
-              </div>
-            </div>
-            {upcomingOpportunities.length > 0 ? (
-              <div className="space-y-2">
-                {upcomingOpportunities.map((opportunity) => {
-                  const signedUpCount = getSignedUpCount(opportunity);
-                  const userIsSignedUp = isSignedUp(opportunity);
-                  const isFull = signedUpCount >= opportunity.max_volunteers;
-                  
-                  return (
-                    <div key={opportunity.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-semibold text-sm text-gray-900">{opportunity.title}</h4>
-                        <span
-                          className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                            opportunity.type === "on-snow"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {opportunity.type === "on-snow" ? "On Snow" : "Off Snow"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                        <div className="flex items-center">
-                          <Calendar size={12} className="mr-1" />
-                          {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })} • {opportunity.time}
-                        </div>
-                        <span className="font-medium">
-                          {signedUpCount}/{opportunity.max_volunteers}
-                        </span>
-                      </div>
-                      {currentView === "volunteer" && (
-                        <>
-                          {userIsSignedUp ? (
-                            <div className="px-2 py-1.5 bg-green-50 text-green-700 text-xs rounded-lg text-center font-medium border border-green-200">
-                              ✓ Signed up
-                            </div>
-                          ) : isFull ? (
-                            <div className="px-2 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg text-center font-medium">
-                              Full
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => quickSignUp(opportunity.id)}
-                              className="w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                            >
-                              Sign Up
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic">No upcoming opportunities</p>
-            )}
-          </div>
-
-          {/* Contact Section */}
-          <div className="border-t pt-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Contact Us</h3>
-            <div className="space-y-2 text-sm">
-              <a href="mailto:volunteer.coordinator@freestylevancouver.ski" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
-                <Mail size={14} className="mr-2" />
-                volunteer.coordinator@freestylevancouver.ski
-              </a>
-            </div>
-          </div>
+        </div>
+        
+        {/* Support Section */}
+        <div className="p-6 border-t border-gray-100 flex-shrink-0">
+          <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Support</h3>
+          <a 
+            href="mailto:volunteer@freestylevancouver.ski" 
+            className="flex items-center text-xs text-gray-600 hover:text-blue-600 transition-colors group"
+          >
+            <Mail size={14} className="mr-2 text-gray-400 group-hover:text-blue-500" />
+            volunteer@freestylevancouver.ski
+          </a>
         </div>
       </div>
     );
@@ -1239,21 +1204,43 @@ Freestyle Vancouver Volunteer Opportunity\r
                   <button
                     onClick={() => setShowOpportunityForm(true)}
                     className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    title="Add Opportunity"
                   >
                     <Plus size={20} />
                   </button>
                   <button
-                    onClick={() => setCurrentView("volunteer")}
-                    className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                    onClick={() => setShowEditInfoModal(true)}
+                    className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    title="Edit Info"
+                  >
+                    <Edit size={20} />
+                  </button>
+                  <button
+                    onClick={fetchAllVolunteers}
+                    disabled={loadingVolunteers}
+                    className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    title="Volunteers List"
                   >
                     <Users size={20} />
                   </button>
+                  <button
+                    onClick={() => {
+                      const element = document.getElementById('mobile-volunteer-management');
+                      if (element) element.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                    title="Jump to Signups"
+                  >
+                    <ChevronDown size={20} />
+                  </button>
+                  <div className="h-6 w-px bg-gray-300 mx-1"></div>
                   <button
                     onClick={() => {
                       setIsAdminLoggedIn(false);
                       setCurrentView("volunteer");
                     }}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    title="Logout"
                   >
                     <LogOut size={20} />
                   </button>
@@ -1397,6 +1384,105 @@ Freestyle Vancouver Volunteer Opportunity\r
                             <div className="text-xs text-gray-500 text-center">
                               +{day.opportunities.length - 2}
                             </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mobile Volunteer Management List */}
+              <div id="mobile-volunteer-management" className="mt-8 scroll-mt-20">
+                <h3 className="text-lg font-bold mb-4 px-2 flex justify-between items-center">
+                  <span>Volunteer Management</span>
+                  <button 
+                    onClick={loadData}
+                    className="text-xs font-medium text-blue-600 flex items-center"
+                  >
+                    <RefreshCw size={14} className="mr-1" /> Refresh
+                  </button>
+                </h3>
+                <div className="space-y-4">
+                  {opportunities
+                    .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date))
+                    .map((opportunity) => {
+                    const signups = opportunity.signups || [];
+                    return (
+                      <div key={opportunity.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-gray-900">{opportunity.title}</h4>
+                            <p className="text-sm text-gray-600">
+                              {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {opportunity.time}
+                            </p>
+                            <p className="text-sm text-gray-500">{opportunity.location}</p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              opportunity.type === "on-snow"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {opportunity.type}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="font-semibold text-gray-700">
+                              Volunteers ({signups.length}/{opportunity.max_volunteers})
+                            </span>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => setEditingOpportunity(opportunity)}
+                                className="p-2 text-blue-600 bg-blue-50 rounded-lg"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => deleteOpportunity(opportunity.id)}
+                                className="p-2 text-red-600 bg-red-50 rounded-lg"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {signups.length > 0 ? (
+                            <div className="space-y-2">
+                              {signups.map((signup) => {
+                                const volunteer = signup.volunteer;
+                                if (!volunteer) return null;
+                                return (
+                                  <div key={signup.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    <div className="flex justify-between items-start">
+                                      <div className="space-y-1">
+                                        <p className="font-bold text-gray-900 text-sm">
+                                          {volunteer.first_name} {volunteer.last_name}
+                                        </p>
+                                        <p className="text-xs text-gray-600 flex items-center">
+                                          <Mail size={12} className="mr-1.5 text-blue-500 opacity-70" />
+                                          {volunteer.email}
+                                        </p>
+                                        <p className="text-xs text-gray-800 font-semibold flex items-center">
+                                          <Phone size={12} className="mr-1.5 text-green-600" />
+                                          {volunteer.mobile || 'N/A'}
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 mt-1 pt-1 border-t border-gray-100">
+                                          <span className="font-medium">Mountain:</span> {volunteer.training_mountain}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 italic bg-gray-50 p-3 rounded-lg text-center">
+                              No volunteers signed up yet
+                            </p>
                           )}
                         </div>
                       </div>
@@ -1783,8 +1869,8 @@ Freestyle Vancouver Volunteer Opportunity\r
         )}
 
         {/* Mobile Navigation Bar */}
-        {currentView === "volunteer" && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2">
+        {(currentView === "volunteer" || isAdminLoggedIn) && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-10">
             <div className="flex justify-around">
               <button
                 onClick={() => setMobileView("calendar")}
@@ -1838,43 +1924,153 @@ Freestyle Vancouver Volunteer Opportunity\r
           />
         )}
 
-        {/* Info Modal */}
-        {showInfoModal && (
+        {/* Volunteer List Modal (Admin Only) */}
+        {showVolunteerList && (
           <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
+            <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200 flex flex-col">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+                  <Users size={28} className="mr-3 text-purple-600" />
+                  Volunteer Directory
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={fetchAllVolunteers}
+                    disabled={loadingVolunteers}
+                    className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    title="Refresh volunteer list"
+                  >
+                    <RefreshCw size={18} className={loadingVolunteers ? "animate-spin" : ""} />
+                    <span className="text-sm font-medium hidden sm:inline">Refresh</span>
+                  </button>
+                  <button
+                    onClick={() => setShowVolunteerList(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X size={24} className="text-gray-500" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-auto">
+                {/* Stacked Card View - All Screens */}
+                <div className="space-y-4">
+                  {allVolunteers.length > 0 ? (
+                    allVolunteers.map((v) => (
+                      <div key={v.id} className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="space-y-2">
+                          <h4 className="font-bold text-gray-900 text-lg">
+                            {v.first_name} {v.last_name}
+                          </h4>
+                          <p className="text-gray-600 flex items-center text-sm">
+                            <Mail size={16} className="mr-2 text-blue-500" /> 
+                            <a href={`mailto:${v.email}`} className="hover:underline">{v.email}</a>
+                          </p>
+                          <p className="text-gray-800 flex items-center font-medium text-sm">
+                            <Phone size={16} className="mr-2 text-green-600" /> 
+                            <a href={`tel:${v.mobile}`} className="hover:underline">{v.mobile || "N/A"}</a>
+                          </p>
+                          <p className="text-gray-600 text-sm">
+                            <span className="font-semibold text-gray-700">Children:</span> {v.children_names || "N/A"}
+                          </p>
+                          <div>
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                              v.training_mountain === 'Grouse' 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {v.training_mountain}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10 text-gray-500 italic">
+                      No volunteers found in the database.
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowVolunteerList(false)}
+                  className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Info Modal (Admin Only) */}
+        {showEditInfoModal && (
+          <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-gray-900 flex items-center">
-                  <Info size={24} className="mr-2 text-green-600" />
-                  Important Information
+                  <Edit size={24} className="mr-2 text-green-600" />
+                  Edit Important Information
                 </h3>
                 <button
-                  onClick={() => setShowInfoModal(false)}
+                  onClick={() => setShowEditInfoModal(false)}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X size={24} />
                 </button>
               </div>
-              <div className="space-y-4 text-gray-700">
-                {/* Ski Pass Requirements */}
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                  <h4 className="font-bold text-lg text-gray-900 mb-3">Ski Pass Requirements</h4>
-                  <div className="space-y-1 text-sm">
-                    {renderInfoText(infoModalContent.skiPassInfo)}
-                  </div>
-                </div>
-
+              <div className="space-y-4">
                 <div>
-                  <h4 className="font-bold text-lg text-gray-900 mb-2">On-Snow Tasks</h4>
-                  <div className="space-y-1 text-sm">
-                    {renderInfoText(infoModalContent.onSnowTasks)}
-                  </div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Ski Pass Requirements</label>
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                    rows="6"
+                    value={infoModalContent.skiPassInfo}
+                    onChange={(e) => setInfoModalContent({...infoModalContent, skiPassInfo: e.target.value})}
+                    placeholder="Enter ski pass requirements..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Use **text** for bold. Use \n for new lines.</p>
                 </div>
-
+                
                 <div>
-                  <h4 className="font-bold text-lg text-gray-900 mb-2">Off-Snow Tasks</h4>
-                  <div className="space-y-1 text-sm">
-                    {renderInfoText(infoModalContent.offSnowTasks)}
-                  </div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">On-Snow Tasks</label>
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                    rows="6"
+                    value={infoModalContent.onSnowTasks}
+                    onChange={(e) => setInfoModalContent({...infoModalContent, onSnowTasks: e.target.value})}
+                    placeholder="Enter on-snow tasks..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Use **text** for bold. Use \n for new lines.</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Off-Snow Tasks</label>
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                    rows="6"
+                    value={infoModalContent.offSnowTasks}
+                    onChange={(e) => setInfoModalContent({...infoModalContent, offSnowTasks: e.target.value})}
+                    placeholder="Enter off-snow tasks..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Use **text** for bold. Use \n for new lines.</p>
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <button
+                    onClick={() => setShowEditInfoModal(false)}
+                    className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveInfoModalContent}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+                  >
+                    Save Changes
+                  </button>
                 </div>
               </div>
             </div>
@@ -1886,163 +2082,91 @@ Freestyle Vancouver Volunteer Opportunity\r
 
   // Desktop layout
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
-      {/* Navigation */}
-      <nav className="h-16 bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-                <img src={logo} alt="Freestyle Vancouver" className="h-14 w-25" />
-              <h1 className="text-xl font-bold text-gray-900">
-                Freestyle Volunteer Portal
-              </h1>
-            </div>
-            <div className="flex items-center space-x-3">
-              {currentView === "volunteer" ? (
-                <>
-                  {currentVolunteer && (
-                    <span className="text-sm text-gray-600 hidden sm:block">
-                      {currentVolunteer.first_name} {currentVolunteer.last_name}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => setCurrentView("admin")}
-                    className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <Settings size={20} />
-                    <span className="hidden sm:inline">Admin</span>
-                  </button>
-                  <button
-                    onClick={onLogout}
-                    className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <LogOut size={20} />
-                    <span className="hidden sm:inline">Logout</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setShowOpportunityForm(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                  >
-                    <Plus size={20} />
-                    <span className="hidden sm:inline">Add Opportunity</span>
-                  </button>
-                  <button
-                    onClick={() => setShowEditInfoModal(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                  >
-                    <Edit size={20} />
-                    <span className="hidden sm:inline">Edit Info</span>
-                  </button>
-                  <button
-                    onClick={() => setCurrentView("volunteer")}
-                    className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <Users size={20} />
-                    <span className="hidden sm:inline">Volunteer View</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsAdminLoggedIn(false);
-                      setCurrentView("volunteer");
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <LogOut size={20} />
-                    <span className="hidden sm:inline">Logout</span>
-                  </button>
-                </>
-              )}
-            </div>
+    <div className="h-screen flex bg-gray-50 overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Logo and Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <img src={logo} alt="Freestyle Vancouver" className="h-12" />
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                const newDate = new Date(selectedDate);
+                newDate.setMonth(newDate.getMonth() - 1);
+                setSelectedDate(newDate);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+            </h2>
+            <button
+              onClick={() => {
+                const newDate = new Date(selectedDate);
+                newDate.setMonth(newDate.getMonth() + 1);
+                setSelectedDate(newDate);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronRight size={20} />
+            </button>
+            <button
+              onClick={() => setSelectedDate(new Date())}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Today
+            </button>
           </div>
         </div>
-      </nav>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Main Content - Calendar */}
-        <div className="flex-1 p-4 flex flex-col overflow-hidden">
-          {/* Calendar Header */}
-          <div className="flex justify-between items-center mb-3 flex-shrink-0">
-            <div className="flex items-center space-x-3">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-              </h2>
-              {currentView === "admin" && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={selectAllOpportunities}
-                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
-                  >
-                    {selectedOpportunities.length === opportunities.length ? 'Deselect All' : 'Select All'}
-                  </button>
-                  {selectedOpportunities.length > 0 && (
-                    <button
-                      onClick={bulkDeleteOpportunities}
-                      className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-1"
-                    >
-                      <Trash2 size={14} />
-                      <span>Delete ({selectedOpportunities.length})</span>
-                    </button>
-                  )}
-                </div>
+        {/* Main Content - Calendar and Volunteer Management */}
+        <div className="flex-1 flex flex-col overflow-hidden p-6">
+          {/* Admin Controls */}
+          {currentView === "admin" && (
+            <div className="flex items-center space-x-2 mb-4">
+              <button
+                onClick={selectAllOpportunities}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+              >
+                {selectedOpportunities.length === opportunities.length ? 'Deselect All' : 'Select All'}
+              </button>
+              {selectedOpportunities.length > 0 && (
+                <button
+                  onClick={bulkDeleteOpportunities}
+                  className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-1"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete ({selectedOpportunities.length})</span>
+                </button>
               )}
             </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  const newDate = new Date(selectedDate);
-                  newDate.setMonth(newDate.getMonth() - 1);
-                  setSelectedDate(newDate);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setSelectedDate(new Date())}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-              >
-                Today
-              </button>
-              <button
-                onClick={() => {
-                  const newDate = new Date(selectedDate);
-                  newDate.setMonth(newDate.getMonth() + 1);
-                  setSelectedDate(newDate);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          )}
 
-          {/* Calendar Grid */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 flex-1 flex flex-col min-h-0">
-            <div className="grid grid-cols-7 gap-px bg-gray-200 flex-shrink-0">
+          {/* Calendar Grid - Top Half, Scrollable */}
+          <div className="flex-1 overflow-auto mb-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                 <div
                   key={day}
-                  className="bg-gray-50 p-2 text-center font-semibold text-gray-700 text-sm"
+                  className="py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider"
                 >
                   {day}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-px bg-gray-200 flex-1 overflow-auto">
+            <div className="grid grid-cols-7 divide-x divide-y divide-gray-100">
               {calendarDays.map((day, index) => {
                 const isToday = day.date.toDateString() === new Date().toDateString();
                 
-                // Only show days from the current month
                 if (!day.isCurrentMonth) {
                   return (
                     <div
                       key={index}
-                      className="bg-gray-50"
+                      className="bg-gray-50 min-h-[120px]"
                     >
-                      {/* Empty cell for days outside current month */}
                     </div>
                   );
                 }
@@ -2050,16 +2174,18 @@ Freestyle Vancouver Volunteer Opportunity\r
                 return (
                   <div
                     key={index}
-                    className={`bg-white p-2 flex flex-col ${
-                      isToday ? "ring-2 ring-blue-500 ring-inset" : ""
+                    className={`bg-white p-3 min-h-[120px] flex flex-col hover:bg-gray-50/50 transition-colors ${
+                      isToday ? "bg-blue-50/30" : ""
                     }`}
                   >
-                    <div className={`text-sm font-semibold mb-1 flex-shrink-0 ${
-                      isToday ? "text-blue-600" : "text-gray-900"
-                    }`}>
-                      {day.date.getDate()}
+                    <div className="flex justify-between items-start mb-2">
+                      <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${
+                        isToday ? "bg-blue-600 text-white shadow-sm" : "text-gray-900"
+                      }`}>
+                        {day.date.getDate()}
+                      </span>
                     </div>
-                    <div className="space-y-1 overflow-y-auto flex-1 min-h-0">
+                    <div className="space-y-2 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
                       {day.opportunities.map((opportunity) => {
                         const signedUpCount = opportunity.signups ? opportunity.signups.length : 0;
                         const userIsSignedUp = isSignedUp(opportunity);
@@ -2149,12 +2275,19 @@ Freestyle Vancouver Volunteer Opportunity\r
                 );
               })}
             </div>
+            </div>
           </div>
 
-          {/* Admin Panel - Volunteer List */}
+          {/* Volunteer Management - Bottom Half, Scrollable */}
           {currentView === "admin" && (
-            <div className="mt-4 bg-white rounded-lg shadow p-4 flex-1 overflow-auto">
-              <h3 className="text-lg font-bold mb-3">Volunteer Management</h3>
+            <div className="flex-1 overflow-auto">
+              <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4">
+                  <h3 className="text-xl font-extrabold text-gray-900">Volunteer Management</h3>
+                  <div className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-bold uppercase tracking-wider border border-purple-100">
+                    Admin Control
+                  </div>
+                </div>
               {opportunities.map((opportunity) => {
                 const signups = opportunity.signups || [];
                 return (
@@ -2191,7 +2324,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                                 key={signup.id}
                                 className="bg-gray-50 p-2 rounded"
                               >
-                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                                   <div>
                                     <strong>Name:</strong> {volunteer.first_name}{" "}
                                     {volunteer.last_name}
@@ -2219,14 +2352,15 @@ Freestyle Vancouver Volunteer Opportunity\r
                   </div>
                 );
               })}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Sidebar */}
-        <Sidebar />
+      </div>
         
-
+      {/* Sidebar - Full Height */}
+      <div className="flex-shrink-0">
+        <Sidebar />
       </div>
 
       {/* Modals */}
@@ -2287,6 +2421,87 @@ Freestyle Vancouver Volunteer Opportunity\r
                   {renderInfoText(infoModalContent.offSnowTasks)}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Volunteer List Modal (Admin Only) */}
+      {showVolunteerList && (
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                <Users size={28} className="mr-3 text-purple-600" />
+                Volunteer Directory
+              </h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={fetchAllVolunteers}
+                  disabled={loadingVolunteers}
+                  className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  title="Refresh volunteer list"
+                >
+                  <RefreshCw size={18} className={loadingVolunteers ? "animate-spin" : ""} />
+                  <span className="text-sm font-medium">Refresh</span>
+                </button>
+                <button
+                  onClick={() => setShowVolunteerList(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={24} className="text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+              {/* Stacked Card View - All Screens */}
+              <div className="space-y-4">
+                {allVolunteers.length > 0 ? (
+                  allVolunteers.map((v) => (
+                    <div key={v.id} className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-gray-900 text-lg">
+                          {v.first_name} {v.last_name}
+                        </h4>
+                        <p className="text-gray-600 flex items-center text-sm">
+                          <Mail size={16} className="mr-2 text-blue-500" /> 
+                          <a href={`mailto:${v.email}`} className="hover:underline">{v.email}</a>
+                        </p>
+                        <p className="text-gray-800 flex items-center font-medium text-sm">
+                          <Phone size={16} className="mr-2 text-green-600" /> 
+                          <a href={`tel:${v.mobile}`} className="hover:underline">{v.mobile || "N/A"}</a>
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          <span className="font-semibold text-gray-700">Children:</span> {v.children_names || "N/A"}
+                        </p>
+                        <div>
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                            v.training_mountain === 'Grouse' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {v.training_mountain}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-gray-500 italic">
+                    No volunteers found in the database.
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowVolunteerList(false)}
+                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
