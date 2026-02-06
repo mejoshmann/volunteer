@@ -346,6 +346,16 @@ export const signupService = {
 
     if (error) throw error
     return data || []
+  },
+
+  // Send manual reminder email (admin only)
+  async sendManualReminder(signupId) {
+    const { data, error } = await supabase.functions.invoke('send-reminder', {
+      body: { signupId }
+    })
+
+    if (error) throw error
+    return data
   }
 }
 

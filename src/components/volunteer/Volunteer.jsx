@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Phone,
+  Send,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -415,6 +416,21 @@ Freestyle Vancouver Volunteer Opportunity\r
   };
 
   // Wrapper to handle UI updates after opportunity creation
+  const [sendingReminder, setSendingReminder] = useState(null);
+
+  const handleSendReminder = async (signupId) => {
+    try {
+      setSendingReminder(signupId);
+      await signupService.sendManualReminder(signupId);
+      alert("Reminder email sent successfully!");
+    } catch (error) {
+      console.error("Error sending reminder:", error);
+      alert("Failed to send reminder: " + (error.message || "Unknown error"));
+    } finally {
+      setSendingReminder(null);
+    }
+  };
+
   const handleOpportunityCreated = async () => {
     setShowOpportunityForm(false);
     // Reload opportunities to show new one
@@ -1403,91 +1419,196 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <RefreshCw size={14} className="mr-1" /> Refresh
                   </button>
                 </h3>
-                <div className="space-y-4">
-                  {opportunities
-                    .sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date))
-                    .map((opportunity) => {
-                    const signups = opportunity.signups || [];
+                <div className="space-y-6">
+                  {(() => {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const todayStr = `${year}-${month}-${day}`;
+                    
+                    const todayOpportunities = opportunities.filter(opp => opp.date === todayStr);
+                    const upcomingOpportunities = opportunities.filter(opp => opp.date > todayStr)
+                      .sort((a, b) => a.date.localeCompare(b.date));
+
                     return (
-                      <div key={opportunity.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h4 className="font-bold text-gray-900">{opportunity.title}</h4>
-                            <p className="text-sm text-gray-600">
-                              {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {opportunity.time}
-                            </p>
-                            <p className="text-sm text-gray-500">{opportunity.location}</p>
-                          </div>
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              opportunity.type === "on-snow"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {opportunity.type}
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="font-semibold text-gray-700">
-                              Volunteers ({signups.length}/{opportunity.max_volunteers})
-                            </span>
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => setEditingOpportunity(opportunity)}
-                                className="p-2 text-blue-600 bg-blue-50 rounded-lg"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={() => deleteOpportunity(opportunity.id)}
-                                className="p-2 text-red-600 bg-red-50 rounded-lg"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                      <>
+                        {todayOpportunities.length > 0 && (
+                          <div className="mb-8">
+                            <div className="flex items-center space-x-2 mb-4 px-2">
+                              <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
+                              <h4 className="text-base font-bold text-gray-900 text-center flex-1">Today's Tasks</h4>
                             </div>
-                          </div>
-                          
-                          {signups.length > 0 ? (
-                            <div className="space-y-2">
-                              {signups.map((signup) => {
-                                const volunteer = signup.volunteer;
-                                if (!volunteer) return null;
+                            <div className="space-y-4">
+                              {todayOpportunities.map((opportunity) => {
+                                const signups = opportunity.signups || [];
                                 return (
-                                  <div key={signup.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                    <div className="flex justify-between items-start">
-                                      <div className="space-y-1">
-                                        <p className="font-bold text-gray-900 text-sm">
-                                          {volunteer.first_name} {volunteer.last_name}
+                                  <div key={opportunity.id} className="bg-blue-50/50 rounded-xl shadow-sm border-2 border-blue-100 p-4">
+                                    <div className="flex justify-between items-start mb-3">
+                                      <div>
+                                        <h4 className="font-bold text-blue-900">{opportunity.title}</h4>
+                                        <p className="text-xs text-blue-700">
+                                          Today at {opportunity.time}
                                         </p>
-                                        <p className="text-xs text-gray-600 flex items-center">
-                                          <Mail size={12} className="mr-1.5 text-blue-500 opacity-70" />
-                                          {volunteer.email}
-                                        </p>
-                                        <p className="text-xs text-gray-800 font-semibold flex items-center">
-                                          <Phone size={12} className="mr-1.5 text-green-600" />
-                                          {volunteer.mobile || 'N/A'}
-                                        </p>
-                                        <p className="text-[10px] text-gray-500 mt-1 pt-1 border-t border-gray-100">
-                                          <span className="font-medium">Mountain:</span> {volunteer.training_mountain}
-                                        </p>
+                                        <p className="text-xs text-blue-600">{opportunity.location}</p>
                                       </div>
+                                      <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                                        opportunity.type === "on-snow" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                                      }`}>
+                                        {opportunity.type}
+                                      </span>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-blue-900">
+                                          Volunteers ({signups.length}/{opportunity.max_volunteers})
+                                        </span>
+                                        <div className="flex space-x-2">
+                                          <button onClick={() => setEditingOpportunity(opportunity)} className="p-1.5 text-blue-600 bg-white rounded-lg border border-blue-100 shadow-sm"><Edit size={14} /></button>
+                                          <button onClick={() => deleteOpportunity(opportunity.id)} className="p-1.5 text-red-600 bg-white rounded-lg border border-red-100 shadow-sm"><Trash2 size={14} /></button>
+                                        </div>
+                                      </div>
+                                      
+                                      {signups.length > 0 ? (
+                                        <div className="space-y-2">
+                                          {signups.map((signup) => {
+                                            const volunteer = signup.volunteer;
+                                            if (!volunteer) return null;
+                                            return (
+                                              <div key={signup.id} className="bg-white p-3 rounded-lg border border-blue-50 shadow-sm">
+                                                <div className="flex justify-between items-start">
+                                                  <div className="space-y-1 flex-1">
+                                                    <p className="font-bold text-gray-900 text-sm">{volunteer.first_name} {volunteer.last_name}</p>
+                                                    <p className="text-[11px] text-gray-600 flex items-center"><Mail size={10} className="mr-1.5 text-blue-500 opacity-70" />{volunteer.email}</p>
+                                                    <p className="text-[11px] text-gray-800 font-semibold flex items-center"><Phone size={10} className="mr-1.5 text-green-600" />{volunteer.mobile || 'N/A'}</p>
+                                                  </div>
+                                                  <button
+                                                    onClick={() => handleSendReminder(signup.id)}
+                                                    disabled={sendingReminder === signup.id}
+                                                    className={`p-2 rounded-lg transition-colors ${sendingReminder === signup.id ? "text-gray-400 bg-gray-100" : "text-blue-600 bg-blue-50 hover:bg-blue-100"}`}
+                                                  >
+                                                    <Send size={14} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <p className="text-[11px] text-blue-400 italic text-center py-2">No signups yet</p>
+                                      )}
                                     </div>
                                   </div>
                                 );
                               })}
                             </div>
-                          ) : (
-                            <p className="text-sm text-gray-500 italic bg-gray-50 p-3 rounded-lg text-center">
-                              No volunteers signed up yet
-                            </p>
-                          )}
+                            <div className="mt-8 mb-4 border-b border-gray-100"></div>
+                          </div>
+                        )}
+
+                        <div className="px-2 mb-4">
+                          <h4 className="text-base font-bold text-gray-900">Upcoming Tasks</h4>
                         </div>
-                      </div>
+                        <div className="space-y-4">
+                          {upcomingOpportunities.map((opportunity) => {
+                              const signups = opportunity.signups || [];
+                              return (
+                                <div key={opportunity.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                  <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                      <h4 className="font-bold text-gray-900">{opportunity.title}</h4>
+                                      <p className="text-sm text-gray-600">
+                                        {new Date(opportunity.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {opportunity.time}
+                                      </p>
+                                      <p className="text-sm text-gray-500">{opportunity.location}</p>
+                                    </div>
+                                    <span
+                                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                        opportunity.type === "on-snow"
+                                          ? "bg-blue-100 text-blue-800"
+                                          : "bg-green-100 text-green-800"
+                                      }`}
+                                    >
+                                      {opportunity.type}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="space-y-3">
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="font-semibold text-gray-700">
+                                        Volunteers ({signups.length}/{opportunity.max_volunteers})
+                                      </span>
+                                      <div className="flex space-x-2">
+                                        <button
+                                          onClick={() => setEditingOpportunity(opportunity)}
+                                          className="p-2 text-blue-600 bg-blue-50 rounded-lg"
+                                        >
+                                          <Edit size={16} />
+                                        </button>
+                                        <button
+                                          onClick={() => deleteOpportunity(opportunity.id)}
+                                          className="p-2 text-red-600 bg-red-50 rounded-lg"
+                                        >
+                                          <Trash2 size={16} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                    
+                                    {signups.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {signups.map((signup) => {
+                                          const volunteer = signup.volunteer;
+                                          if (!volunteer) return null;
+                                          return (
+                                            <div key={signup.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                              <div className="flex justify-between items-start">
+                                                <div className="space-y-1 flex-1">
+                                                  <p className="font-bold text-gray-900 text-sm">
+                                                    {volunteer.first_name} {volunteer.last_name}
+                                                  </p>
+                                                  <p className="text-xs text-gray-600 flex items-center">
+                                                    <Mail size={12} className="mr-1.5 text-blue-500 opacity-70" />
+                                                    {volunteer.email}
+                                                  </p>
+                                                  <p className="text-xs text-gray-800 font-semibold flex items-center">
+                                                    <Phone size={12} className="mr-1.5 text-green-600" />
+                                                    {volunteer.mobile || 'N/A'}
+                                                  </p>
+                                                  <p className="text-[10px] text-gray-500 mt-1 pt-1 border-t border-gray-100">
+                                                    <span className="font-medium">Mountain:</span> {volunteer.training_mountain}
+                                                  </p>
+                                                </div>
+                                                <button
+                                                  onClick={() => handleSendReminder(signup.id)}
+                                                  disabled={sendingReminder === signup.id}
+                                                  className={`p-2 rounded-lg transition-colors ${
+                                                    sendingReminder === signup.id
+                                                      ? "text-gray-400 bg-gray-100"
+                                                      : "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                                  }`}
+                                                  title="Send Reminder"
+                                                >
+                                                  <Send size={16} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-gray-500 italic bg-gray-50 p-3 rounded-lg text-center">
+                                        No volunteers signed up yet
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             </div>
@@ -2288,70 +2409,154 @@ Freestyle Vancouver Volunteer Opportunity\r
                     Admin Control
                   </div>
                 </div>
-              {opportunities.map((opportunity) => {
-                const signups = opportunity.signups || [];
-                return (
-                  <div key={opportunity.id} className="mb-4 border-b pb-3">
-                    <div className="flex justify-between items-start mb-1">
-                      <div>
-                        <h4 className="font-semibold text-sm">{opportunity.title}</h4>
-                        <p className="text-xs text-gray-600">
-                          {opportunity.date} at {opportunity.time} -{" "}
-                          {opportunity.location}
-                        </p>
-                      </div>
-                      <span
-                        className={`px-2 py-1 text-xs rounded ${
-                          opportunity.type === "on-snow"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {opportunity.type}
-                      </span>
-                    </div>
-                    <div className="text-sm">
-                      <strong>
-                        Volunteers ({signups.length}/{opportunity.max_volunteers}):
-                      </strong>
-                      {signups.length > 0 ? (
-                        <div className="mt-1 space-y-1">
-                          {signups.map((signup) => {
-                            const volunteer = signup.volunteer;
-                            if (!volunteer) return null;
-                            return (
-                              <div
-                                key={signup.id}
-                                className="bg-gray-50 p-2 rounded"
-                              >
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                  <div>
-                                    <strong>Name:</strong> {volunteer.first_name}{" "}
-                                    {volunteer.last_name}
+
+                {(() => {
+                  const now = new Date();
+                  const year = now.getFullYear();
+                  const month = String(now.getMonth() + 1).padStart(2, '0');
+                  const day = String(now.getDate()).padStart(2, '0');
+                  const todayStr = `${year}-${month}-${day}`;
+                  
+                  const todayOpportunities = opportunities.filter(opp => opp.date === todayStr);
+                  const upcomingOpportunities = opportunities.filter(opp => opp.date > todayStr)
+                    .sort((a, b) => a.date.localeCompare(b.date));
+
+                  return (
+                    <>
+                      {todayOpportunities.length > 0 && (
+                        <div className="mb-10">
+                          <div className="flex items-center space-x-2 mb-4">
+                            <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
+                            <h4 className="text-lg font-bold text-gray-900">Today's Tasks ({now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})</h4>
+                          </div>
+                          <div className="space-y-6">
+                            {todayOpportunities.map((opportunity) => {
+                              const signups = opportunity.signups || [];
+                              return (
+                                <div key={opportunity.id} className="border-2 border-blue-100 bg-blue-50/30 rounded-xl p-4">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                      <h4 className="font-bold text-base text-blue-900">{opportunity.title}</h4>
+                                      <p className="text-xs font-medium text-blue-700">
+                                        {opportunity.time} - {opportunity.location}
+                                      </p>
+                                    </div>
+                                    <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                                      opportunity.type === "on-snow" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                                    }`}>
+                                      {opportunity.type}
+                                    </span>
                                   </div>
-                                  <div>
-                                    <strong>Email:</strong> {volunteer.email}
-                                  </div>
-                                  <div>
-                                    <strong>Training Mountain:</strong>{" "}
-                                    {volunteer.training_mountain}
-                                  </div>
-                                  <div>
-                                    <strong>Phone:</strong>{" "}
-                                    {volunteer.mobile || 'N/A'}
+                                  <div className="text-sm">
+                                    <strong className="text-blue-900">Volunteers ({signups.length}/{opportunity.max_volunteers}):</strong>
+                                    {signups.length > 0 ? (
+                                      <div className="mt-2 space-y-2">
+                                        {signups.map((signup) => {
+                                          const volunteer = signup.volunteer;
+                                          if (!volunteer) return null;
+                                          return (
+                                            <div key={signup.id} className="bg-white p-3 rounded-lg shadow-sm border border-blue-100">
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                <div className="flex items-center justify-between col-span-1 sm:col-span-2 pb-1 border-b border-gray-50">
+                                                  <div className="flex space-x-4">
+                                                    <div><strong>Name:</strong> {volunteer.first_name} {volunteer.last_name}</div>
+                                                    <div><strong>Email:</strong> {volunteer.email}</div>
+                                                  </div>
+                                                  <button
+                                                    onClick={() => handleSendReminder(signup.id)}
+                                                    disabled={sendingReminder === signup.id}
+                                                    className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                      sendingReminder === signup.id ? "bg-gray-100 text-gray-400" : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                    }`}
+                                                  >
+                                                    <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                    <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                  </button>
+                                                </div>
+                                                <div><strong>Phone:</strong> {volunteer.mobile || 'N/A'}</div>
+                                                <div><strong>Mountain:</strong> {volunteer.training_mountain}</div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="text-blue-600/60 italic mt-1">No signups for today yet</p>
+                                    )}
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
+                          <div className="mt-8 mb-4 border-b border-gray-200"></div>
                         </div>
-                      ) : (
-                        <p className="text-gray-500 mt-1">No volunteers signed up yet</p>
                       )}
-                    </div>
-                  </div>
-                );
-              })}
+
+                      <div className="mb-4">
+                        <h4 className="text-lg font-bold text-gray-900 mb-4">Upcoming Tasks</h4>
+                        <div className="space-y-4">
+                          {upcomingOpportunities.map((opportunity) => {
+                              const signups = opportunity.signups || [];
+                              return (
+                                <div key={opportunity.id} className="mb-4 border-b pb-4">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <div>
+                                      <h4 className="font-semibold text-sm">{opportunity.title}</h4>
+                                      <p className="text-xs text-gray-600">
+                                        {new Date(opportunity.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {opportunity.time} - {opportunity.location}
+                                      </p>
+                                    </div>
+                                    <span className={`px-2 py-1 text-[10px] font-semibold rounded ${
+                                      opportunity.type === "on-snow" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"
+                                    }`}>
+                                      {opportunity.type}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm">
+                                    <strong>Volunteers ({signups.length}/{opportunity.max_volunteers}):</strong>
+                                    {signups.length > 0 ? (
+                                      <div className="mt-1 space-y-1">
+                                        {signups.map((signup) => {
+                                          const volunteer = signup.volunteer;
+                                          if (!volunteer) return null;
+                                          return (
+                                            <div key={signup.id} className="bg-gray-50 p-2 rounded">
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                <div className="flex items-center justify-between col-span-1 sm:col-span-2 mt-1 pt-1 border-t border-gray-100">
+                                                  <div className="flex space-x-4">
+                                                    <div><strong>Name:</strong> {volunteer.first_name} {volunteer.last_name}</div>
+                                                    <div><strong>Email:</strong> {volunteer.email}</div>
+                                                  </div>
+                                                  <button
+                                                    onClick={() => handleSendReminder(signup.id)}
+                                                    disabled={sendingReminder === signup.id}
+                                                    className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                      sendingReminder === signup.id ? "bg-gray-100 text-gray-400" : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                    }`}
+                                                  >
+                                                    <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                    <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                  </button>
+                                                </div>
+                                                <div><strong>Training Mountain:</strong> {volunteer.training_mountain}</div>
+                                                <div><strong>Phone:</strong> {volunteer.mobile || 'N/A'}</div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="text-gray-500 mt-1">No volunteers signed up yet</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
