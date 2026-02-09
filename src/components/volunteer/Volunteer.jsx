@@ -110,6 +110,10 @@ const Volunteer = ({ user, onLogout }) => {
   const [showVolunteerList, setShowVolunteerList] = useState(false); // Volunteer list modal state
   const [allVolunteers, setAllVolunteers] = useState([]);
   const [loadingVolunteers, setLoadingVolunteers] = useState(false);
+  const [sentReminders, setSentReminders] = useState(() => {
+    // Persistent tracking of sent reminders in current session
+    return new Set();
+  });
   const [infoModalContent, setInfoModalContent] = useState(() => {
     // Load from localStorage or use default
     const saved = localStorage.getItem('infoModalContent');
@@ -422,6 +426,7 @@ Freestyle Vancouver Volunteer Opportunity\r
     try {
       setSendingReminder(signupId);
       await signupService.sendManualReminder(signupId);
+      setSentReminders(prev => new Set([...prev, signupId]));
       alert("Reminder email sent successfully!");
     } catch (error) {
       console.error("Error sending reminder:", error);
@@ -1485,10 +1490,21 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                   </div>
                                                   <button
                                                     onClick={() => handleSendReminder(signup.id)}
-                                                    disabled={sendingReminder === signup.id}
-                                                    className={`p-2 rounded-lg transition-colors ${sendingReminder === signup.id ? "text-gray-400 bg-gray-100" : "text-blue-600 bg-blue-50 hover:bg-blue-100"}`}
+                                                    disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                      sentReminders.has(signup.id)
+                                                        ? "text-green-600 bg-green-50"
+                                                        : sendingReminder === signup.id
+                                                          ? "text-gray-400 bg-gray-100"
+                                                          : "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                                    }`}
+                                                    title={sentReminders.has(signup.id) ? "Reminder Sent" : "Send Reminder"}
                                                   >
-                                                    <Send size={14} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                    {sentReminders.has(signup.id) ? (
+                                                      <Check size={14} />
+                                                    ) : (
+                                                      <Send size={14} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                    )}
                                                   </button>
                                                 </div>
                                               </div>
@@ -1581,15 +1597,21 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                 </div>
                                                 <button
                                                   onClick={() => handleSendReminder(signup.id)}
-                                                  disabled={sendingReminder === signup.id}
+                                                  disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
                                                   className={`p-2 rounded-lg transition-colors ${
-                                                    sendingReminder === signup.id
-                                                      ? "text-gray-400 bg-gray-100"
-                                                      : "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                                    sentReminders.has(signup.id)
+                                                      ? "text-green-600 bg-green-50"
+                                                      : sendingReminder === signup.id
+                                                        ? "text-gray-400 bg-gray-100"
+                                                        : "text-blue-600 bg-blue-50 hover:bg-blue-100"
                                                   }`}
-                                                  title="Send Reminder"
+                                                  title={sentReminders.has(signup.id) ? "Reminder Sent" : "Send Reminder"}
                                                 >
-                                                  <Send size={16} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                  {sentReminders.has(signup.id) ? (
+                                                    <Check size={16} />
+                                                  ) : (
+                                                    <Send size={16} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                  )}
                                                 </button>
                                               </div>
                                             </div>
@@ -2052,7 +2074,7 @@ Freestyle Vancouver Volunteer Opportunity\r
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
                   <Users size={28} className="mr-3 text-purple-600" />
-                  Volunteer Directory
+                  Volunteer Directory ({allVolunteers.length})
                 </h3>
                 <div className="flex items-center space-x-2">
                   <button
@@ -2464,13 +2486,26 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                   </div>
                                                   <button
                                                     onClick={() => handleSendReminder(signup.id)}
-                                                    disabled={sendingReminder === signup.id}
+                                                    disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
                                                     className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                                                      sendingReminder === signup.id ? "bg-gray-100 text-gray-400" : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                      sentReminders.has(signup.id) 
+                                                        ? "bg-green-100 text-green-700 border border-green-200"
+                                                        : sendingReminder === signup.id 
+                                                          ? "bg-gray-100 text-gray-400" 
+                                                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
                                                     }`}
                                                   >
-                                                    <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
-                                                    <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                    {sentReminders.has(signup.id) ? (
+                                                      <>
+                                                        <Check size={10} />
+                                                        <span>Reminder Sent</span>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                        <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                      </>
+                                                    )}
                                                   </button>
                                                 </div>
                                                 <div><strong>Phone:</strong> {volunteer.mobile || 'N/A'}</div>
@@ -2529,13 +2564,26 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                   </div>
                                                   <button
                                                     onClick={() => handleSendReminder(signup.id)}
-                                                    disabled={sendingReminder === signup.id}
+                                                    disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
                                                     className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                                                      sendingReminder === signup.id ? "bg-gray-100 text-gray-400" : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                      sentReminders.has(signup.id) 
+                                                        ? "bg-green-100 text-green-700 border border-green-200"
+                                                        : sendingReminder === signup.id 
+                                                          ? "bg-gray-100 text-gray-400" 
+                                                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
                                                     }`}
                                                   >
-                                                    <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
-                                                    <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                    {sentReminders.has(signup.id) ? (
+                                                      <>
+                                                        <Check size={10} />
+                                                        <span>Reminder Sent</span>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                        <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                      </>
+                                                    )}
                                                   </button>
                                                 </div>
                                                 <div><strong>Training Mountain:</strong> {volunteer.training_mountain}</div>
@@ -2638,7 +2686,7 @@ Freestyle Vancouver Volunteer Opportunity\r
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900 flex items-center">
                 <Users size={28} className="mr-3 text-purple-600" />
-                Volunteer Directory
+                Volunteer Directory ({allVolunteers.length})
               </h3>
               <div className="flex items-center space-x-2">
                 <button
