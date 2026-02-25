@@ -1148,11 +1148,11 @@ Freestyle Vancouver Volunteer Opportunity\r
         <div className="p-6 border-t border-gray-100 flex-shrink-0">
           <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Support</h3>
           <a 
-            href="mailto:volunteer@freestylevancouver.ski" 
+            href="mailto:volunteer.coordinator@freestylevancouver.ski" 
             className="flex items-center text-xs text-gray-600 hover:text-blue-600 transition-colors group"
           >
             <Mail size={14} className="mr-2 text-gray-400 group-hover:text-blue-500" />
-            volunteer@freestylevancouver.ski
+            volunteer.coordinator@freestylevancouver.ski
           </a>
         </div>
       </div>
