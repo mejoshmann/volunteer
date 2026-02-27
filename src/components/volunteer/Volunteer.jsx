@@ -1,14 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import logo from '../../assets/logo.png';
 import { supabase, volunteerService, opportunityService, signupService } from '../../lib/supabase';
 import OpportunityForm from './OpportunityForm';
+import CalendarComponent from './Calendar';
+import AdminView from './AdminView';
+import VolunteerView from './VolunteerView';
+import MessageModal from './modals/MessageModal';
+import EditInfoModal from './modals/EditInfoModal';
+import VolunteerDirectoryModal from './modals/VolunteerDirectoryModal';
+import useCalendar from './hooks/useCalendar';
+import useOpportunities from './hooks/useOpportunities';
+import useResizablePanel from './hooks/useResizablePanel';
 import {
-  Calendar,
+  Calendar as CalendarIcon,
   Plus,
-  Trash2,
   Users,
   Mountain,
-  Mail,
   User,
   Settings,
   LogOut,
@@ -28,6 +35,8 @@ import {
   RefreshCw,
   Phone,
   Send,
+  Mail,
+  Trash2,
 } from "lucide-react";
 
 // Admin Login Component - Moved outside to prevent re-renders
@@ -41,11 +50,18 @@ const AdminLogin = ({ loginData, setLoginData, handleAdminLogin, setCurrentView 
         <h2 className="text-3xl font-bold text-gray-900">Admin Portal</h2>
         <p className="text-gray-600 mt-2">Manage volunteer opportunities</p>
       </div>
-      <div className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleAdminLogin();
+        }}
+        className="space-y-4"
+      >
         <div>
           <label className="block text-sm font-semibold mb-2 text-gray-700">Username</label>
           <input
             type="text"
+            name="username"
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
             placeholder="Enter admin username"
             value={loginData.username}
@@ -59,6 +75,7 @@ const AdminLogin = ({ loginData, setLoginData, handleAdminLogin, setCurrentView 
           <label className="block text-sm font-semibold mb-2 text-gray-700">Password</label>
           <input
             type="password"
+            name="password"
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
             placeholder="Enter admin password"
             value={loginData.password}
@@ -66,16 +83,15 @@ const AdminLogin = ({ loginData, setLoginData, handleAdminLogin, setCurrentView 
               setLoginData({ ...loginData, password: e.target.value })
             }
             autoComplete="current-password"
-            onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
           />
         </div>
         <button
-          onClick={handleAdminLogin}
+          type="submit"
           className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md hover:shadow-lg"
         >
           Login to Admin
         </button>
-      </div>
+      </form>
       <div className="mt-6 text-center">
         <button
           onClick={() => setCurrentView("volunteer")}
@@ -114,13 +130,31 @@ const Volunteer = ({ user, onLogout }) => {
     // Persistent tracking of sent reminders in current session
     return new Set();
   });
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageTarget, setMessageTarget] = useState(null);
+  const [messageSubject, setMessageSubject] = useState("");
+  const [messageBody, setMessageBody] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [sentMessages, setSentMessages] = useState(() => new Set());
+  const [highlightedOpportunity, setHighlightedOpportunity] = useState(null);
+  const [removingVolunteer, setRemovingVolunteer] = useState(null);
+  const opportunityRefs = useRef({});
+  
+  // Resizable panel state (percentage for calendar height)
+  const [calendarSplit, setCalendarSplit] = useState(() => {
+    const saved = localStorage.getItem('adminCalendarSplit');
+    return saved ? parseInt(saved, 10) : 50;
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  
   const [infoModalContent, setInfoModalContent] = useState(() => {
     // Load from localStorage or use default
     const saved = localStorage.getItem('infoModalContent');
     return saved ? JSON.parse(saved) : {
       skiPassInfo: "**CYPRESS**\n• On-snow Volunteers require their own ski pass to access the mountain.\n• Off-snow parents do not require a ski pass.\n\n**GROUSE**\n• On-snow AND Off-snow Volunteers require their own ski pass to access the mountain.",
       onSnowTasks: "**Athlete support (2):**\nAssist coaches with injured or sick athletes and bring them to patrol or their parents. This is a critical job as it allows coaches to stay with the rest of the group and continue training.\n\n**Mogul course maintenance (4-6):**\nMust be a competent skier/boarder. Jobs include shoveling, fencing, digging, transporting equipment, slipping, and stepping.",
-      offSnowTasks: "**Check-in parents (2):** Help athletes and parents find their respective groups.\n\n**Marshalling parents (2):** Assist coaches with keeping athletes in their assigned groups and preventing crowds.\n\n**Merchandise distribution:** Help sell and distribute team merchandise.\n\n**Communication:** Share important updates and club messages with members.\n\nAssist coaches with injured or sick athletes and wait with them as necessary."
+      offSnowTasks: "**Check-in parents (2):** Help athletes and parents find their respective groups.\n\n**Marshalling parents (2):** Assist coaches with keeping athletes in their assigned groups and preventing crowds.\n\n**Merchandise distribution:** Help sell and distribute team merchandise.\n\n**Communication:** Share important updates and club messages with members.\n\nAssist coaches with injured or sick athletes and wait with them as necessary.",
+      reminderMessage: "This is a reminder for your upcoming volunteer task. We look forward to seeing you there!"
     };
   });
   
@@ -179,6 +213,30 @@ const Volunteer = ({ user, onLogout }) => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Scroll to today's tasks when opportunities load (admin view)
+  useEffect(() => {
+    if (currentView === "admin" && opportunities.length > 0 && !loading && isAdminLoggedIn) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
+      
+      // Find today's opportunities
+      const todayOpps = opportunities.filter(opp => opp.date === todayStr);
+      
+      // Scroll to first today's task or the closest upcoming task
+      const timer = setTimeout(() => {
+        const targetOpp = todayOpps.length > 0 ? todayOpps[0] : opportunities.find(opp => opp.date >= todayStr);
+        if (targetOpp && opportunityRefs.current[targetOpp.id]) {
+          opportunityRefs.current[targetOpp.id].scrollIntoView({ behavior: 'auto', block: 'start' });
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentView, opportunities, loading, isAdminLoggedIn]);
 
   const loadData = async () => {
     try {
@@ -425,7 +483,7 @@ Freestyle Vancouver Volunteer Opportunity\r
   const handleSendReminder = async (signupId) => {
     try {
       setSendingReminder(signupId);
-      await signupService.sendManualReminder(signupId);
+      await signupService.sendManualReminder(signupId, infoModalContent.reminderMessage);
       setSentReminders(prev => new Set([...prev, signupId]));
       alert("Reminder email sent successfully!");
     } catch (error) {
@@ -435,6 +493,125 @@ Freestyle Vancouver Volunteer Opportunity\r
       setSendingReminder(null);
     }
   };
+
+  const openMessageModal = (volunteer) => {
+    setMessageTarget(volunteer);
+    setMessageSubject("");
+    setMessageBody("");
+    setShowMessageModal(true);
+  };
+
+  const closeMessageModal = () => {
+    setShowMessageModal(false);
+    setMessageTarget(null);
+    setMessageSubject("");
+    setMessageBody("");
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageTarget || !messageSubject.trim() || !messageBody.trim()) {
+      alert("Please fill in both subject and message.");
+      return;
+    }
+
+    try {
+      setSendingMessage(true);
+      await signupService.sendCustomMessage(messageTarget.id, messageSubject, messageBody);
+      setSentMessages(prev => new Set([...prev, messageTarget.id]));
+      alert("Message sent successfully!");
+      closeMessageModal();
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Failed to send message: " + (error.message || "Unknown error"));
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleOpportunityClick = (opportunityId) => {
+    setHighlightedOpportunity(opportunityId);
+    
+    // Scroll to the opportunity in the management panel
+    setTimeout(() => {
+      const element = opportunityRefs.current[opportunityId];
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+    
+    // Clear highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedOpportunity(null);
+    }, 3000);
+  };
+
+  const handleRemoveVolunteer = async (signupId, volunteerName) => {
+    if (!confirm(`Are you sure you want to remove ${volunteerName} from this task? They will be notified by email.`)) {
+      return;
+    }
+
+    try {
+      setRemovingVolunteer(signupId);
+      await signupService.removeVolunteerAndNotify(signupId);
+      
+      // Refresh opportunities to show updated volunteer list
+      const opps = await opportunityService.getOpportunitiesWithSignups();
+      setOpportunities(opps);
+      
+      alert("Volunteer removed and notified successfully!");
+    } catch (error) {
+      console.error("Error removing volunteer:", error);
+      alert("Failed to remove volunteer: " + (error.message || "Unknown error"));
+    } finally {
+      setRemovingVolunteer(null);
+    }
+  };
+
+  // Resizable panel handlers
+  const handleDragStart = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const handleDragMove = useCallback((e) => {
+    if (!isDragging) return;
+    
+    const container = document.getElementById('admin-main-content');
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const percentage = Math.max(20, Math.min(80, (y / rect.height) * 100));
+    
+    setCalendarSplit(percentage);
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('adminCalendarSplit', calendarSplit.toString());
+    }
+  }, [isDragging, calendarSplit]);
+
+  // Add global mouse event listeners for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+    
+    const handleMouseMove = (e) => handleDragMove(e);
+    const handleMouseUp = () => handleDragEnd();
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
 
   const handleOpportunityCreated = async () => {
     setShowOpportunityForm(false);
@@ -646,7 +823,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                     <div>
                       <h4 className="font-bold text-gray-900">{opportunity.title}</h4>
                       <div className="flex items-center text-sm text-gray-600 mt-1">
-                        <Calendar size={14} className="mr-1" />
+                        <CalendarIcon size={14} className="mr-1" />
                         <span>{opportunity.time}</span>
                         <span className="mx-2">•</span>
                         <Mountain size={14} className="mr-1" />
@@ -768,7 +945,7 @@ Freestyle Vancouver Volunteer Opportunity\r
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <Calendar size={48} className="mx-auto mb-3 text-gray-300" />
+            <CalendarIcon size={48} className="mx-auto mb-3 text-gray-300" />
             <p>No volunteer opportunities scheduled for this day</p>
           </div>
         )}
@@ -1030,7 +1207,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                       </div>
                       <div className="text-[11px] text-gray-600 space-y-1.5">
                         <div className="flex items-center text-blue-600 font-medium">
-                          <Calendar size={12} className="mr-1.5" />
+                          <CalendarIcon size={12} className="mr-1.5" />
                           {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                             weekday: 'short', 
                             month: 'short', 
@@ -1137,7 +1314,7 @@ Freestyle Vancouver Volunteer Opportunity\r
               </div>
             ) : (
               <div className="bg-gray-50 rounded-xl p-6 border border-dashed border-gray-200 text-center">
-                <Calendar size={24} className="mx-auto text-gray-300 mb-2" />
+                <CalendarIcon size={24} className="mx-auto text-gray-300 mb-2" />
                 <p className="text-xs text-gray-500 font-medium">No opportunities today</p>
               </div>
             )}
@@ -1435,9 +1612,134 @@ Freestyle Vancouver Volunteer Opportunity\r
                     const todayOpportunities = opportunities.filter(opp => opp.date === todayStr);
                     const upcomingOpportunities = opportunities.filter(opp => opp.date > todayStr)
                       .sort((a, b) => a.date.localeCompare(b.date));
+                    const pastOpportunities = opportunities.filter(opp => opp.date < todayStr)
+                      .sort((a, b) => b.date.localeCompare(a.date)); // Most recent first
 
                     return (
                       <>
+                        {pastOpportunities.length > 0 && (
+                          <div className="mb-8">
+                            <div className="flex items-center space-x-2 mb-4 px-2">
+                              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                              <h4 className="text-base font-bold text-gray-500 text-center flex-1">Past Tasks</h4>
+                            </div>
+                            <div className="space-y-4 opacity-75">
+                              {pastOpportunities.reverse().map((opportunity) => {
+                                const signups = opportunity.signups || [];
+                                return (
+                                  <div 
+                                    key={opportunity.id} 
+                                    ref={(el) => { opportunityRefs.current[opportunity.id] = el; }}
+                                    className={`rounded-xl shadow-sm border-2 p-4 transition-all duration-500 ${
+                                      highlightedOpportunity === opportunity.id 
+                                        ? "border-purple-500 bg-purple-50 shadow-lg ring-2 ring-purple-300 opacity-100" 
+                                        : "border-gray-200 bg-gray-50"
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-start mb-3">
+                                      <div>
+                                        <h4 className="font-bold text-gray-700">{opportunity.title}</h4>
+                                        <p className="text-xs text-gray-500">
+                                          {new Date(opportunity.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {opportunity.time}
+                                        </p>
+                                        <p className="text-xs text-gray-400">{opportunity.location}</p>
+                                      </div>
+                                      <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                                        opportunity.type === "on-snow" ? "bg-gray-200 text-gray-600" : "bg-gray-100 text-gray-500"
+                                      }`}>
+                                        {opportunity.type}
+                                      </span>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-gray-600">
+                                          Volunteers ({signups.length}/{opportunity.max_volunteers})
+                                        </span>
+                                        <div className="flex space-x-2">
+                                          <button onClick={() => setEditingOpportunity(opportunity)} className="p-1.5 text-gray-600 bg-white rounded-lg border border-gray-200 shadow-sm"><Edit size={14} /></button>
+                                          <button onClick={() => deleteOpportunity(opportunity.id)} className="p-1.5 text-red-600 bg-white rounded-lg border border-red-100 shadow-sm"><Trash2 size={14} /></button>
+                                        </div>
+                                      </div>
+                                      
+                                      {signups.length > 0 ? (
+                                        <div className="space-y-2">
+                                          {signups.map((signup) => {
+                                            const volunteer = signup.volunteer;
+                                            if (!volunteer) return null;
+                                            return (
+                                              <div key={signup.id} className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                                <div className="flex justify-between items-start">
+                                                  <div className="space-y-1 flex-1">
+                                                    <p className="font-bold text-gray-700 text-sm">{volunteer.first_name} {volunteer.last_name}</p>
+                                                    <p className="text-[11px] text-gray-500 flex items-center"><Mail size={10} className="mr-1.5 text-gray-400" />{volunteer.email}</p>
+                                                    <p className="text-[11px] text-gray-600 font-semibold flex items-center"><Phone size={10} className="mr-1.5 text-gray-500" />{volunteer.mobile || 'N/A'}</p>
+                                                  </div>
+                                                  <div className="flex space-x-1">
+                                                    <button
+                                                      onClick={() => openMessageModal(volunteer)}
+                                                      disabled={sendingMessage && messageTarget?.id === volunteer.id}
+                                                      className={`p-2 rounded-lg transition-colors ${
+                                                        sentMessages.has(volunteer.id)
+                                                          ? "text-purple-600 bg-purple-50"
+                                                          : "text-purple-600 bg-purple-50 hover:bg-purple-100"
+                                                      }`}
+                                                      title={sentMessages.has(volunteer.id) ? "Message Sent" : "Send Message"}
+                                                    >
+                                                      {sentMessages.has(volunteer.id) ? (
+                                                        <Check size={14} />
+                                                      ) : (
+                                                        <Mail size={14} className={sendingMessage && messageTarget?.id === volunteer.id ? "animate-pulse" : ""} />
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleSendReminder(signup.id)}
+                                                      disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
+                                                      className={`p-2 rounded-lg transition-colors ${
+                                                        sentReminders.has(signup.id)
+                                                          ? "text-green-600 bg-green-50"
+                                                          : sendingReminder === signup.id
+                                                            ? "text-gray-400 bg-gray-100"
+                                                            : "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                                      }`}
+                                                      title={sentReminders.has(signup.id) ? "Reminder Sent" : "Send Reminder"}
+                                                    >
+                                                      {sentReminders.has(signup.id) ? (
+                                                        <Check size={14} />
+                                                      ) : (
+                                                        <Send size={14} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleRemoveVolunteer(signup.id, `${volunteer.first_name} ${volunteer.last_name}`)}
+                                                      disabled={removingVolunteer === signup.id}
+                                                      className="p-2 rounded-lg transition-colors text-red-600 bg-red-50 hover:bg-red-100"
+                                                      title="Remove Volunteer"
+                                                    >
+                                                      {removingVolunteer === signup.id ? (
+                                                        <RefreshCw size={14} className="animate-spin" />
+                                                      ) : (
+                                                        <X size={14} />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <p className="text-[11px] text-gray-400 italic text-center py-2">No signups</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="mt-8 mb-4 border-b border-gray-200"></div>
+                          </div>
+                        )}
+
                         {todayOpportunities.length > 0 && (
                           <div className="mb-8">
                             <div className="flex items-center space-x-2 mb-4 px-2">
@@ -1448,7 +1750,15 @@ Freestyle Vancouver Volunteer Opportunity\r
                               {todayOpportunities.map((opportunity) => {
                                 const signups = opportunity.signups || [];
                                 return (
-                                  <div key={opportunity.id} className="bg-blue-50/50 rounded-xl shadow-sm border-2 border-blue-100 p-4">
+                                  <div 
+                                    key={opportunity.id} 
+                                    ref={(el) => { opportunityRefs.current[opportunity.id] = el; }}
+                                    className={`rounded-xl shadow-sm border-2 p-4 transition-all duration-500 ${
+                                      highlightedOpportunity === opportunity.id 
+                                        ? "border-purple-500 bg-purple-50 ring-2 ring-purple-300" 
+                                        : "border-blue-100 bg-blue-50/50"
+                                    }`}
+                                  >
                                     <div className="flex justify-between items-start mb-3">
                                       <div>
                                         <h4 className="font-bold text-blue-900">{opportunity.title}</h4>
@@ -1488,24 +1798,42 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                     <p className="text-[11px] text-gray-600 flex items-center"><Mail size={10} className="mr-1.5 text-blue-500 opacity-70" />{volunteer.email}</p>
                                                     <p className="text-[11px] text-gray-800 font-semibold flex items-center"><Phone size={10} className="mr-1.5 text-green-600" />{volunteer.mobile || 'N/A'}</p>
                                                   </div>
-                                                  <button
-                                                    onClick={() => handleSendReminder(signup.id)}
-                                                    disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
-                                                    className={`p-2 rounded-lg transition-colors ${
-                                                      sentReminders.has(signup.id)
-                                                        ? "text-green-600 bg-green-50"
-                                                        : sendingReminder === signup.id
-                                                          ? "text-gray-400 bg-gray-100"
-                                                          : "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                                                    }`}
-                                                    title={sentReminders.has(signup.id) ? "Reminder Sent" : "Send Reminder"}
-                                                  >
-                                                    {sentReminders.has(signup.id) ? (
-                                                      <Check size={14} />
-                                                    ) : (
-                                                      <Send size={14} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
-                                                    )}
-                                                  </button>
+                                                  <div className="flex space-x-1">
+                                                    <button
+                                                      onClick={() => openMessageModal(volunteer)}
+                                                      disabled={sendingMessage && messageTarget?.id === volunteer.id}
+                                                      className={`p-2 rounded-lg transition-colors ${
+                                                        sentMessages.has(volunteer.id)
+                                                          ? "text-purple-600 bg-purple-50"
+                                                          : "text-purple-600 bg-purple-50 hover:bg-purple-100"
+                                                      }`}
+                                                      title={sentMessages.has(volunteer.id) ? "Message Sent" : "Send Message"}
+                                                    >
+                                                      {sentMessages.has(volunteer.id) ? (
+                                                        <Check size={14} />
+                                                      ) : (
+                                                        <Mail size={14} className={sendingMessage && messageTarget?.id === volunteer.id ? "animate-pulse" : ""} />
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleSendReminder(signup.id)}
+                                                      disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
+                                                      className={`p-2 rounded-lg transition-colors ${
+                                                        sentReminders.has(signup.id)
+                                                          ? "text-green-600 bg-green-50"
+                                                          : sendingReminder === signup.id
+                                                            ? "text-gray-400 bg-gray-100"
+                                                            : "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                                      }`}
+                                                      title={sentReminders.has(signup.id) ? "Reminder Sent" : "Send Reminder"}
+                                                    >
+                                                      {sentReminders.has(signup.id) ? (
+                                                        <Check size={14} />
+                                                      ) : (
+                                                        <Send size={14} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                      )}
+                                                    </button>
+                                                  </div>
                                                 </div>
                                               </div>
                                             );
@@ -1530,7 +1858,15 @@ Freestyle Vancouver Volunteer Opportunity\r
                           {upcomingOpportunities.map((opportunity) => {
                               const signups = opportunity.signups || [];
                               return (
-                                <div key={opportunity.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                <div 
+                                  key={opportunity.id} 
+                                  ref={(el) => { opportunityRefs.current[opportunity.id] = el; }}
+                                  className={`rounded-xl shadow-sm border p-4 transition-all duration-500 ${
+                                    highlightedOpportunity === opportunity.id 
+                                      ? "border-purple-500 bg-purple-50 ring-2 ring-purple-300" 
+                                      : "border-gray-200 bg-white"
+                                  }`}
+                                >
                                   <div className="flex justify-between items-start mb-3">
                                     <div>
                                       <h4 className="font-bold text-gray-900">{opportunity.title}</h4>
@@ -1595,24 +1931,54 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                     <span className="font-medium">Mountain:</span> {volunteer.training_mountain}
                                                   </p>
                                                 </div>
-                                                <button
-                                                  onClick={() => handleSendReminder(signup.id)}
-                                                  disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
-                                                  className={`p-2 rounded-lg transition-colors ${
-                                                    sentReminders.has(signup.id)
-                                                      ? "text-green-600 bg-green-50"
-                                                      : sendingReminder === signup.id
-                                                        ? "text-gray-400 bg-gray-100"
-                                                        : "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                                                  }`}
-                                                  title={sentReminders.has(signup.id) ? "Reminder Sent" : "Send Reminder"}
-                                                >
-                                                  {sentReminders.has(signup.id) ? (
-                                                    <Check size={16} />
-                                                  ) : (
-                                                    <Send size={16} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
-                                                  )}
-                                                </button>
+                                                <div className="flex space-x-1">
+                                                  <button
+                                                    onClick={() => openMessageModal(volunteer)}
+                                                    disabled={sendingMessage && messageTarget?.id === volunteer.id}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                      sentMessages.has(volunteer.id)
+                                                        ? "text-purple-600 bg-purple-50"
+                                                        : "text-purple-600 bg-purple-50 hover:bg-purple-100"
+                                                    }`}
+                                                    title={sentMessages.has(volunteer.id) ? "Message Sent" : "Send Message"}
+                                                  >
+                                                    {sentMessages.has(volunteer.id) ? (
+                                                      <Check size={16} />
+                                                    ) : (
+                                                      <Mail size={16} className={sendingMessage && messageTarget?.id === volunteer.id ? "animate-pulse" : ""} />
+                                                    )}
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleSendReminder(signup.id)}
+                                                    disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                      sentReminders.has(signup.id)
+                                                        ? "text-green-600 bg-green-50"
+                                                        : sendingReminder === signup.id
+                                                          ? "text-gray-400 bg-gray-100"
+                                                          : "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                                    }`}
+                                                    title={sentReminders.has(signup.id) ? "Reminder Sent" : "Send Reminder"}
+                                                  >
+                                                    {sentReminders.has(signup.id) ? (
+                                                      <Check size={16} />
+                                                    ) : (
+                                                      <Send size={16} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                    )}
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleRemoveVolunteer(signup.id, `${volunteer.first_name} ${volunteer.last_name}`)}
+                                                    disabled={removingVolunteer === signup.id}
+                                                    className="p-2 rounded-lg transition-colors text-red-600 bg-red-50 hover:bg-red-100"
+                                                    title="Remove Volunteer"
+                                                  >
+                                                    {removingVolunteer === signup.id ? (
+                                                      <RefreshCw size={16} className="animate-spin" />
+                                                    ) : (
+                                                      <X size={16} />
+                                                    )}
+                                                  </button>
+                                                </div>
                                               </div>
                                             </div>
                                           );
@@ -1721,7 +2087,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                                     </div>
                                     <div className="text-xs text-gray-600 space-y-1">
                                       <div className="flex items-center">
-                                        <Calendar size={12} className="mr-1.5" />
+                                        <CalendarIcon size={12} className="mr-1.5" />
                                         {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                                           weekday: 'short', 
                                           month: 'short', 
@@ -1952,7 +2318,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                                       </div>
                                       <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                                         <div className="flex items-center">
-                                          <Calendar size={12} className="mr-1" />
+                                          <CalendarIcon size={12} className="mr-1" />
                                           {parseLocalDate(opportunity.date).toLocaleDateString('en-US', { 
                                             month: 'short', 
                                             day: 'numeric' 
@@ -2021,7 +2387,7 @@ Freestyle Vancouver Volunteer Opportunity\r
                   mobileView === "calendar" ? "text-blue-600" : "text-gray-500"
                 }`}
               >
-                <Calendar size={20} />
+                <CalendarIcon size={20} />
                 <span className="text-xs mt-1">Calendar</span>
               </button>
               <button
@@ -2265,7 +2631,7 @@ Freestyle Vancouver Volunteer Opportunity\r
         </div>
 
         {/* Main Content - Calendar and Volunteer Management */}
-        <div className="flex-1 flex flex-col overflow-hidden p-6">
+        <div id="admin-main-content" className="flex-1 flex flex-col overflow-hidden p-6">
           {/* Admin Controls */}
           {currentView === "admin" && (
             <div className="flex items-center space-x-2 mb-4">
@@ -2287,8 +2653,8 @@ Freestyle Vancouver Volunteer Opportunity\r
             </div>
           )}
 
-          {/* Calendar Grid - Top Half, Scrollable */}
-          <div className="flex-1 overflow-auto mb-6">
+          {/* Calendar Grid - Resizable Top Section (Admin) / Full Height (Volunteer) */}
+          <div style={{ height: currentView === "admin" ? `${calendarSplit}%` : '100%', minHeight: '150px' }} className="overflow-auto">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
@@ -2337,13 +2703,14 @@ Freestyle Vancouver Volunteer Opportunity\r
                         return (
                           <div
                             key={opportunity.id}
+                            onClick={() => currentView === "admin" && handleOpportunityClick(opportunity.id)}
                             className={`text-xs p-1.5 rounded-lg cursor-pointer transition-all hover:shadow-md ${
                               opportunity.type === "on-snow"
                                 ? "bg-blue-50 text-blue-900 border border-blue-200"
                                 : "bg-green-50 text-green-900 border border-green-200"
                             } ${userIsSignedUp ? "ring-2 ring-offset-1 ring-green-500" : ""} ${
                               currentView === "admin" && selectedOpportunities.includes(opportunity.id) ? "ring-2 ring-red-500" : ""
-                            }`}
+                            } ${currentView === "admin" ? "hover:ring-2 hover:ring-purple-300" : ""}`}
                           >
                             {currentView === "admin" && (
                               <div className="flex items-center mb-1">
@@ -2421,9 +2788,20 @@ Freestyle Vancouver Volunteer Opportunity\r
             </div>
           </div>
 
-          {/* Volunteer Management - Bottom Half, Scrollable */}
+          {/* Resizable Divider */}
           {currentView === "admin" && (
-            <div className="flex-1 overflow-auto">
+            <div
+              onMouseDown={handleDragStart}
+              className="h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-100 transition-colors my-1 rounded"
+              title="Drag to resize"
+            >
+              <div className="w-16 h-1 bg-gray-300 rounded-full"></div>
+            </div>
+          )}
+
+          {/* Volunteer Management - Resizable Bottom Section */}
+          {currentView === "admin" && (
+            <div style={{ height: `${100 - calendarSplit - 2}%`, minHeight: '150px' }} className="overflow-auto">
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4">
                   <h3 className="text-xl font-extrabold text-gray-900">Volunteer Management</h3>
@@ -2442,9 +2820,124 @@ Freestyle Vancouver Volunteer Opportunity\r
                   const todayOpportunities = opportunities.filter(opp => opp.date === todayStr);
                   const upcomingOpportunities = opportunities.filter(opp => opp.date > todayStr)
                     .sort((a, b) => a.date.localeCompare(b.date));
+                  const pastOpportunities = opportunities.filter(opp => opp.date < todayStr)
+                    .sort((a, b) => b.date.localeCompare(a.date)); // Most recent first
 
                   return (
                     <>
+                      {pastOpportunities.length > 0 && (
+                        <div className="mb-10">
+                          <div className="flex items-center space-x-2 mb-4">
+                            <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                            <h4 className="text-lg font-bold text-gray-500">Past Tasks</h4>
+                          </div>
+                          <div className="space-y-6 opacity-75">
+                            {pastOpportunities.reverse().map((opportunity) => {
+                              const signups = opportunity.signups || [];
+                              return (
+                                <div 
+                                  key={opportunity.id} 
+                                  ref={(el) => { opportunityRefs.current[opportunity.id] = el; }}
+                                  className={`border-2 rounded-xl p-4 transition-all duration-500 ${
+                                    highlightedOpportunity === opportunity.id 
+                                      ? "border-purple-500 bg-purple-50 shadow-lg ring-2 ring-purple-300 opacity-100" 
+                                      : "border-gray-200 bg-gray-50"
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                      <h4 className="font-bold text-base text-gray-700">{opportunity.title}</h4>
+                                      <p className="text-xs font-medium text-gray-500">
+                                        {new Date(opportunity.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {opportunity.time} - {opportunity.location}
+                                      </p>
+                                    </div>
+                                    <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                                      opportunity.type === "on-snow" ? "bg-gray-200 text-gray-600" : "bg-gray-100 text-gray-500"
+                                    }`}>
+                                      {opportunity.type}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm">
+                                    <strong className="text-gray-600">Volunteers ({signups.length}/{opportunity.max_volunteers}):</strong>
+                                    {signups.length > 0 ? (
+                                      <div className="mt-2 space-y-2">
+                                        {signups.map((signup) => {
+                                          const volunteer = signup.volunteer;
+                                          if (!volunteer) return null;
+                                          return (
+                                            <div key={signup.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                <div className="flex items-center justify-between col-span-1 sm:col-span-2 pb-1 border-b border-gray-50">
+                                                  <div className="flex space-x-4">
+                                                    <div><strong>Name:</strong> {volunteer.first_name} {volunteer.last_name}</div>
+                                                    <div><strong>Email:</strong> {volunteer.email}</div>
+                                                  </div>
+                                                  <div className="flex space-x-2">
+                                                    <button
+                                                      onClick={() => openMessageModal(volunteer)}
+                                                      disabled={sendingMessage && messageTarget?.id === volunteer.id}
+                                                      className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                        sentMessages.has(volunteer.id) 
+                                                          ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                                          : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+                                                      }`}
+                                                    >
+                                                      {sentMessages.has(volunteer.id) ? (
+                                                        <>
+                                                          <Check size={10} />
+                                                          <span>Message Sent</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Mail size={10} className={sendingMessage && messageTarget?.id === volunteer.id ? "animate-pulse" : ""} />
+                                                          <span>{sendingMessage && messageTarget?.id === volunteer.id ? "Sending..." : "Send Message"}</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleSendReminder(signup.id)}
+                                                      disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
+                                                      className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                        sentReminders.has(signup.id) 
+                                                          ? "bg-green-100 text-green-700 border border-green-200"
+                                                          : sendingReminder === signup.id 
+                                                            ? "bg-gray-100 text-gray-400" 
+                                                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                      }`}
+                                                    >
+                                                      {sentReminders.has(signup.id) ? (
+                                                        <>
+                                                          <Check size={10} />
+                                                          <span>Reminder Sent</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                          <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                                <div><strong>Phone:</strong> {volunteer.mobile || 'N/A'}</div>
+                                                <div><strong>Mountain:</strong> {volunteer.training_mountain}</div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="text-gray-400 italic mt-1">No signups for this task</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-8 mb-4 border-b border-gray-200"></div>
+                        </div>
+                      )}
+
                       {todayOpportunities.length > 0 && (
                         <div className="mb-10">
                           <div className="flex items-center space-x-2 mb-4">
@@ -2455,7 +2948,15 @@ Freestyle Vancouver Volunteer Opportunity\r
                             {todayOpportunities.map((opportunity) => {
                               const signups = opportunity.signups || [];
                               return (
-                                <div key={opportunity.id} className="border-2 border-blue-100 bg-blue-50/30 rounded-xl p-4">
+                                <div 
+                                  key={opportunity.id} 
+                                  ref={(el) => { opportunityRefs.current[opportunity.id] = el; }}
+                                  className={`border-2 rounded-xl p-4 transition-all duration-500 ${
+                                    highlightedOpportunity === opportunity.id 
+                                      ? "border-purple-500 bg-purple-50 shadow-lg ring-2 ring-purple-300" 
+                                      : "border-blue-100 bg-blue-50/30"
+                                  }`}
+                                >
                                   <div className="flex justify-between items-start mb-2">
                                     <div>
                                       <h4 className="font-bold text-base text-blue-900">{opportunity.title}</h4>
@@ -2484,29 +2985,69 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                     <div><strong>Name:</strong> {volunteer.first_name} {volunteer.last_name}</div>
                                                     <div><strong>Email:</strong> {volunteer.email}</div>
                                                   </div>
-                                                  <button
-                                                    onClick={() => handleSendReminder(signup.id)}
-                                                    disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
-                                                    className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                                                      sentReminders.has(signup.id) 
-                                                        ? "bg-green-100 text-green-700 border border-green-200"
-                                                        : sendingReminder === signup.id 
-                                                          ? "bg-gray-100 text-gray-400" 
-                                                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-                                                    }`}
-                                                  >
-                                                    {sentReminders.has(signup.id) ? (
-                                                      <>
-                                                        <Check size={10} />
-                                                        <span>Reminder Sent</span>
-                                                      </>
-                                                    ) : (
-                                                      <>
-                                                        <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
-                                                        <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
-                                                      </>
-                                                    )}
-                                                  </button>
+                                                  <div className="flex space-x-2">
+                                                    <button
+                                                      onClick={() => openMessageModal(volunteer)}
+                                                      disabled={sendingMessage && messageTarget?.id === volunteer.id}
+                                                      className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                        sentMessages.has(volunteer.id) 
+                                                          ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                                          : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+                                                      }`}
+                                                    >
+                                                      {sentMessages.has(volunteer.id) ? (
+                                                        <>
+                                                          <Check size={10} />
+                                                          <span>Message Sent</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Mail size={10} className={sendingMessage && messageTarget?.id === volunteer.id ? "animate-pulse" : ""} />
+                                                          <span>{sendingMessage && messageTarget?.id === volunteer.id ? "Sending..." : "Send Message"}</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleSendReminder(signup.id)}
+                                                      disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
+                                                      className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                        sentReminders.has(signup.id) 
+                                                          ? "bg-green-100 text-green-700 border border-green-200"
+                                                          : sendingReminder === signup.id 
+                                                            ? "bg-gray-100 text-gray-400" 
+                                                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                      }`}
+                                                    >
+                                                      {sentReminders.has(signup.id) ? (
+                                                        <>
+                                                          <Check size={10} />
+                                                          <span>Reminder Sent</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                          <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleRemoveVolunteer(signup.id, `${volunteer.first_name} ${volunteer.last_name}`)}
+                                                      disabled={removingVolunteer === signup.id}
+                                                      className="flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors text-red-700 bg-red-50 hover:bg-red-100 border border-red-200"
+                                                    >
+                                                      {removingVolunteer === signup.id ? (
+                                                        <>
+                                                          <RefreshCw size={10} className="animate-spin" />
+                                                          <span>Removing...</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <X size={10} />
+                                                          <span>Remove</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                  </div>
                                                 </div>
                                                 <div><strong>Phone:</strong> {volunteer.mobile || 'N/A'}</div>
                                                 <div><strong>Mountain:</strong> {volunteer.training_mountain}</div>
@@ -2533,7 +3074,15 @@ Freestyle Vancouver Volunteer Opportunity\r
                           {upcomingOpportunities.map((opportunity) => {
                               const signups = opportunity.signups || [];
                               return (
-                                <div key={opportunity.id} className="mb-4 border-b pb-4">
+                                <div 
+                                  key={opportunity.id} 
+                                  ref={(el) => { opportunityRefs.current[opportunity.id] = el; }}
+                                  className={`mb-4 pb-4 border-b transition-all duration-500 ${
+                                    highlightedOpportunity === opportunity.id 
+                                      ? "bg-purple-50 rounded-lg p-3 shadow-md ring-2 ring-purple-300 border-purple-300" 
+                                      : ""
+                                  }`}
+                                >
                                   <div className="flex justify-between items-start mb-1">
                                     <div>
                                       <h4 className="font-semibold text-sm">{opportunity.title}</h4>
@@ -2562,29 +3111,69 @@ Freestyle Vancouver Volunteer Opportunity\r
                                                     <div><strong>Name:</strong> {volunteer.first_name} {volunteer.last_name}</div>
                                                     <div><strong>Email:</strong> {volunteer.email}</div>
                                                   </div>
-                                                  <button
-                                                    onClick={() => handleSendReminder(signup.id)}
-                                                    disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
-                                                    className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                                                      sentReminders.has(signup.id) 
-                                                        ? "bg-green-100 text-green-700 border border-green-200"
-                                                        : sendingReminder === signup.id 
-                                                          ? "bg-gray-100 text-gray-400" 
-                                                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-                                                    }`}
-                                                  >
-                                                    {sentReminders.has(signup.id) ? (
-                                                      <>
-                                                        <Check size={10} />
-                                                        <span>Reminder Sent</span>
-                                                      </>
-                                                    ) : (
-                                                      <>
-                                                        <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
-                                                        <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
-                                                      </>
-                                                    )}
-                                                  </button>
+                                                  <div className="flex space-x-2">
+                                                    <button
+                                                      onClick={() => openMessageModal(volunteer)}
+                                                      disabled={sendingMessage && messageTarget?.id === volunteer.id}
+                                                      className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                        sentMessages.has(volunteer.id) 
+                                                          ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                                          : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+                                                      }`}
+                                                    >
+                                                      {sentMessages.has(volunteer.id) ? (
+                                                        <>
+                                                          <Check size={10} />
+                                                          <span>Message Sent</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Mail size={10} className={sendingMessage && messageTarget?.id === volunteer.id ? "animate-pulse" : ""} />
+                                                          <span>{sendingMessage && messageTarget?.id === volunteer.id ? "Sending..." : "Send Message"}</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleSendReminder(signup.id)}
+                                                      disabled={sendingReminder === signup.id || sentReminders.has(signup.id)}
+                                                      className={`flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                                        sentReminders.has(signup.id) 
+                                                          ? "bg-green-100 text-green-700 border border-green-200"
+                                                          : sendingReminder === signup.id 
+                                                            ? "bg-gray-100 text-gray-400" 
+                                                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                                      }`}
+                                                    >
+                                                      {sentReminders.has(signup.id) ? (
+                                                        <>
+                                                          <Check size={10} />
+                                                          <span>Reminder Sent</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Send size={10} className={sendingReminder === signup.id ? "animate-pulse" : ""} />
+                                                          <span>{sendingReminder === signup.id ? "Sending..." : "Send Reminder"}</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                    <button
+                                                      onClick={() => handleRemoveVolunteer(signup.id, `${volunteer.first_name} ${volunteer.last_name}`)}
+                                                      disabled={removingVolunteer === signup.id}
+                                                      className="flex items-center space-x-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors text-red-700 bg-red-50 hover:bg-red-100 border border-red-200"
+                                                    >
+                                                      {removingVolunteer === signup.id ? (
+                                                        <>
+                                                          <RefreshCw size={10} className="animate-spin" />
+                                                          <span>Removing...</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <X size={10} />
+                                                          <span>Remove</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                  </div>
                                                 </div>
                                                 <div><strong>Training Mountain:</strong> {volunteer.training_mountain}</div>
                                                 <div><strong>Phone:</strong> {volunteer.mobile || 'N/A'}</div>
@@ -2812,6 +3401,18 @@ Freestyle Vancouver Volunteer Opportunity\r
                 />
                 <p className="text-xs text-gray-500 mt-1">Use **text** for bold. Use \n for new lines.</p>
               </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Reminder Email Message</label>
+                <textarea
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                  rows="4"
+                  value={infoModalContent.reminderMessage}
+                  onChange={(e) => setInfoModalContent({...infoModalContent, reminderMessage: e.target.value})}
+                  placeholder="Enter the reminder email message..."
+                />
+                <p className="text-xs text-gray-500 mt-1">This message will appear in reminder emails sent to volunteers.</p>
+              </div>
               
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
@@ -2825,6 +3426,86 @@ Freestyle Vancouver Volunteer Opportunity\r
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Send Message Modal (Admin Only) */}
+      {showMessageModal && messageTarget && (
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                <Mail size={24} className="mr-2 text-purple-600" />
+                Send Message
+              </h3>
+              <button
+                onClick={closeMessageModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">To:</p>
+              <p className="font-semibold text-gray-900">{messageTarget.first_name} {messageTarget.last_name}</p>
+              <p className="text-sm text-gray-500">{messageTarget.email}</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Subject</label>
+                <input
+                  type="text"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Enter message subject..."
+                  value={messageSubject}
+                  onChange={(e) => setMessageSubject(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Message</label>
+                <textarea
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  rows="6"
+                  placeholder="Type your personal message here..."
+                  value={messageBody}
+                  onChange={(e) => setMessageBody(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-1">This will be sent as an email to the volunteer.</p>
+              </div>
+              
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <button
+                  onClick={closeMessageModal}
+                  className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={sendingMessage || !messageSubject.trim() || !messageBody.trim()}
+                  className={`px-4 py-2 rounded-lg font-medium flex items-center space-x-2 ${
+                    sendingMessage || !messageSubject.trim() || !messageBody.trim()
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-purple-600 text-white hover:bg-purple-700"
+                  }`}
+                >
+                  {sendingMessage ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} />
+                      <span>Send Message</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -15,7 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const { signupId, customMessage } = await req.json()
+    const { volunteerId, subject, message } = await req.json()
+
+    if (!volunteerId || !subject || !message) {
+      throw new Error('Missing required fields: volunteerId, subject, or message')
+    }
 
     // Initialize Supabase Client with Service Role Key to bypass RLS
     const supabaseClient = createClient(
@@ -23,22 +27,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch signup details including volunteer and opportunity info
-    const { data: signup, error: fetchError } = await supabaseClient
-      .from('signups')
-      .select(`
-        id,
-        volunteer:volunteers (first_name, last_name, email),
-        opportunity:opportunities (title, date, time, location)
-      `)
-      .eq('id', signupId)
+    // Fetch volunteer details
+    const { data: volunteer, error: fetchError } = await supabaseClient
+      .from('volunteers')
+      .select('first_name, last_name, email')
+      .eq('id', volunteerId)
       .single()
 
-    if (fetchError || !signup) {
-      throw new Error('Signup not found or error fetching details')
+    if (fetchError || !volunteer) {
+      throw new Error('Volunteer not found or error fetching details')
     }
-
-    const { volunteer, opportunity } = signup
 
     // Send Email via Resend
     const res = await fetch('https://api.resend.com/emails', {
@@ -50,21 +48,17 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'Volunteer App <reminders@freestylevancouver.app>',
         to: [volunteer.email],
-        subject: `Reminder: ${opportunity.title}`,
+        subject: subject,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Volunteer Reminder</h2>
+            <h2>Message from Volunteer Coordinator</h2>
             <p>Hi ${volunteer.first_name},</p>
-            <p>This is a reminder for your upcoming volunteer task:</p>
-            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Task:</strong> ${opportunity.title}</p>
-              <p><strong>Date:</strong> ${new Date(opportunity.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-              <p><strong>Time:</strong> ${opportunity.time}</p>
-              <p><strong>Location:</strong> ${opportunity.location}</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; white-space: pre-wrap;">
+              ${message.replace(/\n/g, '<br>')}
             </div>
-            <p>${customMessage ? customMessage.replace(/\n/g, '<br>') : "We look forward to seeing you there!"}</p>
+            <p>Best regards,<br>Freestyle Vancouver Volunteer Team</p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-            <p style="font-size: 12px; color: #6b7280;">This is an automated reminder from the Volunteer Portal.</p>
+            <p style="font-size: 12px; color: #6b7280;">This message was sent via the Volunteer Portal.</p>
             <p style="font-size: 12px; color: #6b7280; margin-top: 10px;"><strong>Do not respond to this email.</strong> Contact us at: <a href="mailto:volunteer.coordinator@freestylevancouver.ski">volunteer.coordinator@freestylevancouver.ski</a></p>
           </div>
         `,

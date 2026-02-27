@@ -349,8 +349,28 @@ export const signupService = {
   },
 
   // Send manual reminder email (admin only)
-  async sendManualReminder(signupId) {
+  async sendManualReminder(signupId, customMessage) {
     const { data, error } = await supabase.functions.invoke('send-reminder', {
+      body: { signupId, customMessage }
+    })
+
+    if (error) throw error
+    return data
+  },
+
+  // Send custom message email to volunteer (admin only)
+  async sendCustomMessage(volunteerId, subject, message) {
+    const { data, error } = await supabase.functions.invoke('send-message', {
+      body: { volunteerId, subject, message }
+    })
+
+    if (error) throw error
+    return data
+  },
+
+  // Remove volunteer from task and send notification (admin only)
+  async removeVolunteerAndNotify(signupId) {
+    const { data, error } = await supabase.functions.invoke('send-removal-notice', {
       body: { signupId }
     })
 

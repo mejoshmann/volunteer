@@ -40,13 +40,9 @@ const OpportunityForm = ({
     if (
       !sanitizedData.date ||
       !sanitizedData.time ||
-      !sanitizedData.title ||
-      !sanitizedData.description ||
-      !sanitizedData.location ||
-      !sanitizedData.type ||
-      !sanitizedData.max_volunteers
+      !sanitizedData.location
     ) {
-      alert("Please fill in all required fields");
+      alert("Please fill in all required fields (Date, Time, and Location)");
       return;
     }
 
@@ -177,7 +173,7 @@ const OpportunityForm = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Title *</label>
+            <label className="block text-sm font-medium mb-1">Title</label>
             <input
               type="text"
               className="w-full p-2 border rounded-md"
@@ -190,7 +186,7 @@ const OpportunityForm = ({
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              Description *
+              Description
             </label>
             <textarea
               className="w-full p-2 border rounded-md"
@@ -220,7 +216,7 @@ const OpportunityForm = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Type *</label>
+            <label className="block text-sm font-medium mb-1">Type</label>
             <select
               className="w-full p-2 border rounded-md"
               value={formData.type}
@@ -237,7 +233,7 @@ const OpportunityForm = ({
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              Max Volunteers *
+              Max Volunteers
             </label>
             <input
               type="number"

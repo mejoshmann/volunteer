@@ -15,7 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const { signupId, customMessage } = await req.json()
+    const { signupId } = await req.json()
+
+    if (!signupId) {
+      throw new Error('Missing required field: signupId')
+    }
 
     // Initialize Supabase Client with Service Role Key to bypass RLS
     const supabaseClient = createClient(
@@ -50,21 +54,22 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'Volunteer App <reminders@freestylevancouver.app>',
         to: [volunteer.email],
-        subject: `Reminder: ${opportunity.title}`,
+        subject: `Removed from: ${opportunity.title}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Volunteer Reminder</h2>
+            <h2>Volunteer Task Removal</h2>
             <p>Hi ${volunteer.first_name},</p>
-            <p>This is a reminder for your upcoming volunteer task:</p>
+            <p>You have been removed from the following volunteer task:</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <p><strong>Task:</strong> ${opportunity.title}</p>
               <p><strong>Date:</strong> ${new Date(opportunity.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
               <p><strong>Time:</strong> ${opportunity.time}</p>
               <p><strong>Location:</strong> ${opportunity.location}</p>
             </div>
-            <p>${customMessage ? customMessage.replace(/\n/g, '<br>') : "We look forward to seeing you there!"}</p>
+            <p>If you believe this was done in error, please contact the volunteer coordinator.</p>
+            <p>Thank you for your willingness to help!</p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-            <p style="font-size: 12px; color: #6b7280;">This is an automated reminder from the Volunteer Portal.</p>
+            <p style="font-size: 12px; color: #6b7280;">This is an automated notification from the Volunteer Portal.</p>
             <p style="font-size: 12px; color: #6b7280; margin-top: 10px;"><strong>Do not respond to this email.</strong> Contact us at: <a href="mailto:volunteer.coordinator@freestylevancouver.ski">volunteer.coordinator@freestylevancouver.ski</a></p>
           </div>
         `,
@@ -75,6 +80,16 @@ serve(async (req) => {
 
     if (!res.ok) {
       throw new Error(resData.message || 'Failed to send email via Resend')
+    }
+
+    // Delete the signup after sending notification
+    const { error: deleteError } = await supabaseClient
+      .from('signups')
+      .delete()
+      .eq('id', signupId)
+
+    if (deleteError) {
+      throw new Error('Failed to delete signup: ' + deleteError.message)
     }
 
     return new Response(JSON.stringify({ success: true, data: resData }), {
