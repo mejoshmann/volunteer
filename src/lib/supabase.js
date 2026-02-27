@@ -376,6 +376,56 @@ export const signupService = {
 
     if (error) throw error
     return data
+  },
+
+  // Get all volunteers with their task counts for the season
+  async getVolunteerTaskStats() {
+    const { data, error } = await supabase
+      .from('volunteers')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        email,
+        mobile,
+        training_mountain,
+        children_names,
+        signups (
+          id,
+          opportunity:opportunities (
+            date
+          )
+        )
+      `)
+      .order('last_name', { ascending: true })
+
+    if (error) throw error
+
+    // Calculate task counts
+    const currentYear = new Date().getFullYear()
+    const stats = data.map(volunteer => {
+      const signups = volunteer.signups || []
+      const totalTasks = signups.length
+      const currentYearTasks = signups.filter(s => {
+        const oppDate = s.opportunity?.date
+        if (!oppDate) return false
+        return new Date(oppDate).getFullYear() === currentYear
+      }).length
+
+      return {
+        id: volunteer.id,
+        first_name: volunteer.first_name,
+        last_name: volunteer.last_name,
+        email: volunteer.email,
+        mobile: volunteer.mobile,
+        training_mountain: volunteer.training_mountain,
+        children_names: volunteer.children_names,
+        total_tasks: totalTasks,
+        current_year_tasks: currentYearTasks
+      }
+    })
+
+    return stats
   }
 }
 

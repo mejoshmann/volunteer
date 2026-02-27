@@ -276,6 +276,49 @@ const Volunteer = ({ user, onLogout }) => {
     }
   };
 
+  // Export volunteer task stats as CSV
+  const exportVolunteerStatsCSV = async () => {
+    try {
+      setLoadingVolunteers(true);
+      const stats = await volunteerService.getVolunteerTaskStats();
+      
+      // Create CSV content
+      const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Mountain', 'Children', 'Total Tasks', 'Current Year Tasks'];
+      const rows = stats.map(v => [
+        v.first_name,
+        v.last_name,
+        v.email,
+        v.mobile || 'N/A',
+        v.training_mountain,
+        v.children_names || 'N/A',
+        v.total_tasks,
+        v.current_year_tasks
+      ]);
+      
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+      
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `volunteer-stats-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert(`Exported ${stats.length} volunteers to CSV`);
+    } catch (error) {
+      console.error('Error exporting volunteer stats:', error);
+      alert('Failed to export volunteer stats: ' + (error.message || 'Unknown error'));
+    } finally {
+      setLoadingVolunteers(false);
+    }
+  };
+
   // Quick signup function with optimistic updates
   const quickSignUp = async (opportunityId) => {
     // Check if volunteer profile exists
@@ -1180,6 +1223,14 @@ Freestyle Vancouver Volunteer Opportunity\r
               >
                 <Users size={20} className="mr-3" />
                 {loadingVolunteers ? "Loading..." : "Volunteers List"}
+              </button>
+              <button
+                onClick={exportVolunteerStatsCSV}
+                disabled={loadingVolunteers}
+                className="w-full px-4 py-2.5 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-sm flex items-center font-medium disabled:opacity-50"
+              >
+                <Download size={20} className="mr-3" />
+                {loadingVolunteers ? "Exporting..." : "Export Stats CSV"}
               </button>
             </div>
           )}
