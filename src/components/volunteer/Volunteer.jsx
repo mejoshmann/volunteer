@@ -2701,6 +2701,14 @@ Freestyle Vancouver Volunteer Opportunity\r
                   <span>Delete ({selectedOpportunities.length})</span>
                 </button>
               )}
+              <button
+                onClick={exportVolunteerStatsCSV}
+                disabled={loadingVolunteers}
+                className="px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium flex items-center space-x-1 disabled:opacity-50"
+              >
+                <Download size={14} />
+                <span>{loadingVolunteers ? "Exporting..." : "Export Stats CSV"}</span>
+              </button>
             </div>
           )}
 
