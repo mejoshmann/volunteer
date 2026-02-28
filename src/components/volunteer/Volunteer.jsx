@@ -264,8 +264,8 @@ const Volunteer = ({ user, onLogout }) => {
   const fetchAllVolunteers = async () => {
     try {
       setLoadingVolunteers(true);
-      const data = await volunteerService.getAllVolunteers();
-      console.log('Fetched volunteers:', data);
+      const data = await volunteerService.getVolunteerTaskStats();
+      console.log('Fetched volunteers with stats:', data);
       setAllVolunteers(data || []);
       setShowVolunteerList(true);
     } catch (error) {
@@ -278,8 +278,6 @@ const Volunteer = ({ user, onLogout }) => {
 
   // Export volunteer task stats as CSV
   const exportVolunteerStatsCSV = async () => {
-    console.log('volunteerService:', volunteerService);
-    console.log('volunteerService methods:', Object.keys(volunteerService || {}));
     try {
       setLoadingVolunteers(true);
       const stats = await volunteerService.getVolunteerTaskStats();
@@ -1225,14 +1223,6 @@ Freestyle Vancouver Volunteer Opportunity\r
               >
                 <Users size={20} className="mr-3" />
                 {loadingVolunteers ? "Loading..." : "Volunteers List"}
-              </button>
-              <button
-                onClick={exportVolunteerStatsCSV}
-                disabled={loadingVolunteers}
-                className="w-full px-4 py-2.5 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-sm flex items-center font-medium disabled:opacity-50"
-              >
-                <Download size={20} className="mr-3" />
-                {loadingVolunteers ? "Exporting..." : "Export Stats CSV"}
               </button>
             </div>
           )}
@@ -2535,13 +2525,16 @@ Freestyle Vancouver Volunteer Opportunity\r
                           <p className="text-gray-600 text-sm">
                             <span className="font-semibold text-gray-700">Children:</span> {v.children_names || "N/A"}
                           </p>
-                          <div>
+                          <div className="flex items-center justify-between">
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                               v.training_mountain === 'Grouse' 
                                 ? 'bg-green-100 text-green-700' 
                                 : 'bg-blue-100 text-blue-700'
                             }`}>
                               {v.training_mountain}
+                            </span>
+                            <span className="text-sm font-medium text-gray-700">
+                              <span className="text-blue-600 font-bold">{v.current_year_tasks || 0}</span> tasks this year
                             </span>
                           </div>
                         </div>
@@ -2703,14 +2696,6 @@ Freestyle Vancouver Volunteer Opportunity\r
                   <span>Delete ({selectedOpportunities.length})</span>
                 </button>
               )}
-              <button
-                onClick={exportVolunteerStatsCSV}
-                disabled={loadingVolunteers}
-                className="px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium flex items-center space-x-1 disabled:opacity-50"
-              >
-                <Download size={14} />
-                <span>{loadingVolunteers ? "Exporting..." : "Export Stats CSV"}</span>
-              </button>
             </div>
           )}
 
@@ -3378,13 +3363,16 @@ Freestyle Vancouver Volunteer Opportunity\r
                         <p className="text-gray-600 text-sm">
                           <span className="font-semibold text-gray-700">Children:</span> {v.children_names || "N/A"}
                         </p>
-                        <div>
+                        <div className="flex items-center justify-between">
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                             v.training_mountain === 'Grouse' 
                               ? 'bg-green-100 text-green-700' 
                               : 'bg-blue-100 text-blue-700'
                           }`}>
                             {v.training_mountain}
+                          </span>
+                          <span className="text-sm font-medium text-gray-700">
+                            <span className="text-blue-600 font-bold">{v.current_year_tasks || 0}</span> tasks this year
                           </span>
                         </div>
                       </div>
