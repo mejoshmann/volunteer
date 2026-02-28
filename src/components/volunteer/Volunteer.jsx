@@ -278,6 +278,8 @@ const Volunteer = ({ user, onLogout }) => {
 
   // Export volunteer task stats as CSV
   const exportVolunteerStatsCSV = async () => {
+    console.log('volunteerService:', volunteerService);
+    console.log('volunteerService methods:', Object.keys(volunteerService || {}));
     try {
       setLoadingVolunteers(true);
       const stats = await volunteerService.getVolunteerTaskStats();
