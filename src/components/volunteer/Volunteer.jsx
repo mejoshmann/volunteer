@@ -266,7 +266,22 @@ const Volunteer = ({ user, onLogout }) => {
       setLoadingVolunteers(true);
       const data = await volunteerService.getAllVolunteers();
       console.log('Fetched volunteers:', data);
-      setAllVolunteers(data || []);
+      
+      // Calculate task counts from opportunities data
+      const volunteersWithStats = (data || []).map(volunteer => {
+        let taskCount = 0;
+        opportunities.forEach(opp => {
+          if (opp.signups) {
+            const hasSignedUp = opp.signups.some(signup => 
+              signup.volunteer?.id === volunteer.id || signup.volunteer_id === volunteer.id
+            );
+            if (hasSignedUp) taskCount++;
+          }
+        });
+        return { ...volunteer, task_count: taskCount };
+      });
+      
+      setAllVolunteers(volunteersWithStats);
       setShowVolunteerList(true);
     } catch (error) {
       console.error('Error fetching volunteers:', error);
@@ -2525,13 +2540,16 @@ Freestyle Vancouver Volunteer Opportunity\r
                           <p className="text-gray-600 text-sm">
                             <span className="font-semibold text-gray-700">Children:</span> {v.children_names || "N/A"}
                           </p>
-                          <div>
+                          <div className="flex items-center justify-between pt-1">
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                               v.training_mountain === 'Grouse' 
                                 ? 'bg-green-100 text-green-700' 
                                 : 'bg-blue-100 text-blue-700'
                             }`}>
                               {v.training_mountain}
+                            </span>
+                            <span className="text-sm font-medium text-gray-700">
+                              <span className="text-blue-600 font-bold">{v.task_count || 0}</span> tasks
                             </span>
                           </div>
                         </div>
@@ -3360,13 +3378,16 @@ Freestyle Vancouver Volunteer Opportunity\r
                         <p className="text-gray-600 text-sm">
                           <span className="font-semibold text-gray-700">Children:</span> {v.children_names || "N/A"}
                         </p>
-                        <div>
+                        <div className="flex items-center justify-between pt-1">
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                             v.training_mountain === 'Grouse' 
                               ? 'bg-green-100 text-green-700' 
                               : 'bg-blue-100 text-blue-700'
                           }`}>
                             {v.training_mountain}
+                          </span>
+                          <span className="text-sm font-medium text-gray-700">
+                            <span className="text-blue-600 font-bold">{v.task_count || 0}</span> tasks
                           </span>
                         </div>
                       </div>
